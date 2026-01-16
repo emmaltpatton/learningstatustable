@@ -2,8 +2,8 @@
 {
   "name": "L&D Table – Question, Single Choice, Date",
   "description": "Table with read-only (HTML-capable) questions, single-choice responses, and a date that defaults to the day a response is selected. Supports CSV-prefill, per-row choices, optional row codes, and a Reload button.",
-  "url": "https://your-domain/widgets/ld-table/index.html",
-  "iconUrl": "https://your-domain/widgets/ld-table/icon-128.png",
+  "url": "https://emmaltpatton.github.io/learningstatustable/index.html",
+  "iconUrl": "https://emmaltpatton.github.io/learningstatustable/icon-128.png",
   "platform": "iframe",
   "width": 900,
   "height": 380,
@@ -36,3 +36,4 @@
       "defaultValue": "Access Employee Portal within PageUp\nComplete Workplace Behaviour training\nReview HSE Essentials procedures" }
   ]
 }
+

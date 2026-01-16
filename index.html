@@ -1,0 +1,47 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>L&D Table (Question • Single Choice • Date)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Jotform Custom Widget API -->
+  <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+
+  <!-- CSV parser (Papa Parse) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <h3 id="tableTitle">Learning & Development Evaluation</h3>
+      <div class="header-actions">
+        <button id="reloadBtn" type="button" class="btn" aria-live="polite">Reload</button>
+        <span id="status" class="status" aria-live="polite"></span>
+      </div>
+    </header>
+
+    <table id="ldTable" class="ld-table" role="table" aria-label="Training responses">
+      <thead>
+        <tr>
+          <th id="qHeader">Question</th>
+          <th id="choiceHeader">Response</th>
+          <th id="dateHeader">Date</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <!-- Rows are injected by widget.js -->
+      </tbody>
+    </table>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <!-- Widget logic -->
+  <script src="widget.js"></script>
+</body>
+</html>

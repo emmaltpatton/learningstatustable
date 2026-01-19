@@ -5,7 +5,8 @@
   <meta charset="utf-8" />
   <title>Learning Status Table</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Jotform Custom Widget API -->
+
+  <!-- ✅ Correct Jotform Custom Widget API include -->
   <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
 
   <style>
@@ -16,11 +17,11 @@
       --border: #c8c8c8;
       --text: #222;
 
-      /* Typography driven by settings */
+      /* Typography (can be driven by settings) */
       --form-font-family: Inter, sans-serif;
       --form-font-size: 14px;
 
-      /* NEW: font colour variables driven by settings */
+      /* NEW: text colours driven by settings */
       --section-title-font-color: #ffffff; /* title bar text */
       --th-font-color: #ffffff;            /* <th> text */
     }
@@ -53,7 +54,7 @@
     .table-wrap { overflow: auto; }
     table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
 
-    /* Header cells – single, variable-driven rule */
+    /* Single, variable-driven header rule */
     thead th {
       text-align: left;
       padding: 8px 10px;
@@ -83,8 +84,7 @@
     }
 
     /* Ensure table & inputs use same font */
-    table, th, td,
-    label, input, button, select, textarea {
+    table, th, td, label, input, button, select, textarea {
       font-family: var(--form-font-family) !important;
       font-size: var(--form-font-size);
       color: var(--text);
@@ -117,12 +117,8 @@
       const box = document.getElementById('sectionTitle');
       if (!box) return;
       const title = (settings.headerTitle || '').trim();
-      if (title) {
-        box.textContent = title;
-        box.style.display = '';
-      } else {
-        box.style.display = 'none';
-      }
+      if (title) { box.textContent = title; box.style.display = ''; }
+      else { box.style.display = 'none'; }
     }
 
     function hexToRgb(hex) {
@@ -160,15 +156,15 @@
       statusOptions: 'Complete\nNot Applicable',
       headerColor: '#0c2340',
       headerTitle: 'INDUCTION',
-      autoDateOnOptions: '',                // blank => auto-stamp on ANY status change
-      formFontFamily: 'Inter, sans-serif', // can be overridden via widget setting
+      autoDateOnOptions: '',                 // blank => auto-stamp on ANY status change
+      formFontFamily: 'Inter, sans-serif',
       formFontSize: '14px',
       sectionTitleFontColor: '#ffffff',
       thFontColor: '#ffffff'
     };
     let initialValue = null; // restored on edit
 
-    // ---------- Look & feel from settings ----------
+    // ---------- Look & feel from settings (TOP-LEVEL, not nested) ----------
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--header-color', settings.headerColor);
@@ -315,7 +311,7 @@
       settings.formFontFamily        = get('formFontFamily', settings.formFontFamily);
       settings.formFontSize          = get('formFontSize',   settings.formFontSize);
       settings.sectionTitleFontColor = get('sectionTitleFontColor', settings.sectionTitleFontColor);
-      settings.thFontColor           = get('thFontColor',          settings.thFontColor);
+      settings.thFontColor           = get('thFontColor',           settings.thFontColor);
 
       const table = $('#statusTable');
       table.setAttribute('aria-label', settings.headerTitle);

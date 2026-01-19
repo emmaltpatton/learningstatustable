@@ -14,10 +14,42 @@
       --border: #c8c8c8;
       --text: #222;
     
-  /* New: will be set from widget setting */
+ 
+ /* existing typography vars if you added them */
   --form-font-family: Inter, sans-serif;
-  --form-font-size: 14px; /* optional, can be overridden */
+  --form-font-size: 14px;
+
+  /* NEW: font color variables driven by widget settings */
+  --section-title-font-color: #ffffff; /* default */
+  --th-font-color: #ffffff;            /* default */
 }
+
+/* Title bar above the table */
+.section-title{
+  /* your existing styles */
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--section-title-font-color);   /* ← driven by setting */
+  background: var(--header-color);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+
+/* Table header cells */
+thead th{
+  /* your existing styles */
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--th-font-color);              /* ← driven by setting */
+  background: var(--header-color);
+  border-bottom: 1px solid var(--border);
+  /* If you set font-family for consistency, keep it as-is */
+  font-family: var(--form-font-family) !important;
+}
+
 
     * { box-sizing: border-box; }
    
@@ -179,7 +211,10 @@ function getRadioByValue(container, value) {
   }
 }
 
-    renderHeaderTitle(); 
+    
+applyWidgetColors();   // ← add this line
+  renderHeaderTitle && renderHeaderTitle();
+
 
     const tbody = $('#tableBody');
     tbody.innerHTML = '';
@@ -303,6 +338,24 @@ function getRadioByValue(container, value) {
     settings.autoDateOnOptions = get('autoDateOnOptions', settings.autoDateOnOptions);
     settings.formFontFamily = get('formFontFamily', 'Inter, sans-serif');
     settings.formFontSize   = get('formFontSize',   '14px');
+    settings.sectionTitleFontColor = get('sectionTitleFontColor', '#ffffff');
+    settings.thFontColor          = get('thFontColor',          '#ffffff');
+
+
+function applyWidgetColors() {
+  const root = document.documentElement;
+  if (settings.sectionTitleFontColor) {
+    root.style.setProperty('--section-title-font-color', settings.sectionTitleFontColor);
+  }
+  if (settings.thFontColor) {
+    root.style.setProperty('--th-font-color', settings.thFontColor);
+  }
+  if (settings.headerColor) {
+    // keep your existing behavior for header background + zebra
+    root.style.setProperty('--header-color', settings.headerColor);
+    root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
+  }
+}
 
 
     const table = $('#statusTable');
@@ -365,6 +418,7 @@ function getRadioByValue(container, value) {
 
 </body>
 </html>
+
 
 
 

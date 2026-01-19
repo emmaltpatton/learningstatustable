@@ -46,11 +46,11 @@ html, body {
 }
 
 /* Ensure table & inputs match the same font */
-table, td,
-label, input, button, select, textarea,{
+table, th, td,
+label, input, button, select, textarea,
+    .section-title {
   font-family: var(--form-font-family) !important;
   font-size: var(--form-font-size);
-  color: var(--text);
 }
     .table-wrap { overflow: auto; }
     table {width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
@@ -365,6 +365,7 @@ function getRadioByValue(container, value) {
 
 </body>
 </html>
+
 
 
 

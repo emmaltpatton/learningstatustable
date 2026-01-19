@@ -147,6 +147,69 @@
       return null;
     }
 
+// --- PDF-safe helpers (keep only basic tags) ---
+function escapeHtml(txt) {
+  const d = document.createElement('div');
+  d.textContent = String(txt ?? '');
+  return d.innerHTML;
+}
+
+// keep <a>, <ul>, <li>, <strong>, <em>, <br> — flatten everything else to plain text
+function sanitizeTaskHtml(html) {
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html || '';
+
+  const allowed = new Set(['A','UL','LI','STRONG','EM','BR']);
+  wrapper.querySelectorAll('*').forEach(node => {
+    if (!allowed.has(node.tagName)) {
+      // unwrap disallowed node but keep its text/children
+      const span = document.createElement('span');
+      while (node.firstChild) span.appendChild(node.firstChild);
+      node.replaceWith(span);
+    }
+  });
+
+  // harden links
+  wrapper.querySelectorAll('a[href]').forEach(a => {
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener noreferrer');
+  });
+
+  return wrapper.innerHTML;
+}
+
+function buildPdfHtmlTable(rows, opts = {}) {
+  const headerBg = (opts.headerColor || '#0c2340');
+  const thColor  = (opts.thFontColor || '#ffffff');
+
+  const buf = [];
+  buf.push(
+    '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:inherit;font-size:inherit;">',
+    '<thead>',
+      `<tr style="background:${escapeHtml(headerBg)};color:${escapeHtml(thColor)};">`,
+        '<th align="left">Task</th>',
+        '<th align="left">Status</th>',
+        '<th align="left">Date</th>',
+      '</tr>',
+    '</thead>',
+    '<tbody>'
+  );
+
+  rows.forEach(r => {
+    const taskCell = r.taskHtml ? sanitizeTaskHtml(r.taskHtml) : escapeHtml(r.taskText || '');
+    buf.push(
+      '<tr>',
+        `<td>${taskCell}</td>`,
+        `<td>${escapeHtml(r.status || '')}</td>`,
+        `<td>${escapeHtml(r.date || '')}</td>`,
+      '</tr>'
+    );
+  });
+
+  buf.push('</tbody></table>');
+  return buf.join('');
+}
+
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
     let settings = {
       rowsContent:
@@ -337,10 +400,24 @@
         buildTable();
       });
 
-      JFCustomWidget.subscribe('submit', function () {
-        const value = collectValue();
-        JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
-      });
+     
+JFCustomWidget.subscribe('submit', function () {
+  // 1) collect the structured value (you already have this)
+  const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
+
+  // 2) build a PDF-friendly HTML table
+  const htmlTable = buildPdfHtmlTable(structured, {
+    headerColor: settings.headerColor,
+    thFontColor: settings.thFontColor  // you already read this from settings
+  });
+
+  // 3) send HTML table as the field value so PDF Editor can render it
+  JFCustomWidget.sendSubmit({
+    valid: true,
+    value: htmlTable
+  });
+});
+
 
       window.addEventListener('load', requestResize);
       new ResizeObserver(requestResize).observe(document.documentElement);
@@ -369,6 +446,7 @@
 
 </body>
 </html>
+
 
 
 

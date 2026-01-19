@@ -168,7 +168,7 @@
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--header-color', settings.headerColor);
-      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
+      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .01));
     }
     function applyTypography() {
       const root = document.documentElement;
@@ -369,5 +369,6 @@
 
 </body>
 </html>
+
 
 

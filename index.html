@@ -1,48 +1,270 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>L&D Table (Question • Single Choice • Date)</title>
+  <title>Status Table with Auto Date</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
   <!-- Jotform Custom Widget API -->
-  <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+  <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+  <style>
+    :root{
+      --header-color: #0c2340;              /* default header colour */
+      --row-alt-color: rgba(12,35,64,.2);   /* 20% tint of header colour */
+      --border: #c8c8c8;
+      --text: #222;
+    }
 
-  <!-- CSV parser (Papa Parse) -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 12px;
+      font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text); background: transparent;
+    }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="styles.css" />
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
+    thead th {
+      text-align: left; padding: 8px 10px; color: #fff;
+      background: var(--header-color); border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      vertical-align: top; padding: 6px 10px;
+      border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: #fff;
+    }
+    tbody tr:nth-child(even) td { background: var(--row-alt-color); }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody td:last-child, thead th:last-child { border-right: 0; }
+
+    .task-html a { color: #0b6cf0; text-decoration: underline; }
+    .status-list { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+    .status-list label { white-space: nowrap; cursor: pointer; }
+
+    input[type="date"]{
+      width: 100%; min-width: 12ch; padding: 4px 6px;
+      border: 1px solid #bfbfbf; border-radius: 3px; background: #fff;
+    }
+  </style>
 </head>
 <body>
-  <main class="container">
-    <header class="header">
-      <h3 id="tableTitle">Learning & Development Evaluation</h3>
-      <div class="header-actions">
-        <button id="reloadBtn" type="button" class="btn" aria-live="polite">Reload</button>
-        <span id="status" class="status" aria-live="polite"></span>
-      </div>
-    </header>
-
-    <table id="ldTable" class="ld-table" role="table" aria-label="Training responses">
+  <div class="table-wrap">
+    <table id="statusTable" aria-describedby="sectionTitle">
       <thead>
         <tr>
-          <th id="qHeader">Task</th>
-          <th id="choiceHeader">Status</th>
-          <th id="dateHeader">Date</th>
+          <th id="col_task">Task</th>
+          <th id="col_status">Status</th>
+          <th id="col_date">Date</th>
         </tr>
       </thead>
-      <tbody id="tbody">
-        <!-- Rows are injected by widget.js -->
-      </tbody>
+      <tbody id="tableBody"><tr><td>Loading…</td></tr></tbody>
     </table>
+  </div>
 
-    <p id="error" class="error" hidden></p>
-  </main>
+  <script>
+    // ---------- Utilities ----------
+    const $ = sel => document.querySelector(sel);
 
-  <!-- Widget logic -->
-  <script src="widget.js"></script>
+    function hexToRgb(hex) {
+      const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (!m) return {r:12,g:35,b:64};
+      let h = m[1];
+      if (h.length === 3) h = h.split('').map(x => x + x).join('');
+      const int = parseInt(h, 16);
+      return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+    }
+    function tintFromHex(hex, alpha = .2) {
+      const {r,g,b} = hexToRgb(hex);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    function stripHtml(html) {
+      const d = document.createElement('div'); d.innerHTML = html || '';
+      return (d.textContent || d.innerText || '').trim();
+    }
+    function parseLines(text) {
+      if (!text) return [];
+      return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    }
+    function escSelector(val) {
+      return (val || '').replace(/["\\[\\]\\(\\)\\^\\$*+.?{}|]/g, '\\$&');
+    }
+
+    // ---------- Configuration (defaults) ----------
+    let settings = {
+      rowsContent:
+        'Access Employee Portal within PageUp\n' +
+        'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
+        'Book into relevant learning activities in PageUp',
+      statusOptions: 'Complete\nNot Applicable',
+      headerColor: '#0c2340',
+      headerTitle: 'INDUCTION',
+      autoDateOnOptions: '' // blank => auto-stamp on ANY status change
+    };
+    let initialValue = null; // restored on edit
+
+    // ---------- Rendering ----------
+    function applyTheme() {
+      const root = document.documentElement;
+      root.style.setProperty('--header-color', settings.headerColor);
+      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
+    }
+
+    function getAutoDateWhitelist() {
+      const opts = parseLines(settings.autoDateOnOptions);
+      return new Set(opts.map(o => o.toLowerCase()));
+    }
+
+    function buildTable() {
+      applyTheme();
+
+      const tbody = $('#tableBody');
+      tbody.innerHTML = '';
+
+      const rows = parseLines(settings.rowsContent);
+      const options = parseLines(settings.statusOptions);
+      const whitelist = getAutoDateWhitelist();
+      const autoOnAny = whitelist.size === 0;
+
+      rows.forEach((rowHtml, idx) => {
+        const tr = document.createElement('tr');
+
+        // Task cell (HTML allowed)
+        const tdTask = document.createElement('td');
+        tdTask.className = 'task-html';
+        tdTask.innerHTML = rowHtml;
+        tdTask.querySelectorAll('a[href]').forEach(a => {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        });
+
+        // Status cell (same options per row)
+        const tdStatus = document.createElement('td');
+        const statusWrap = document.createElement('div');
+        statusWrap.className = 'status-list';
+        const groupName = `status_row_${idx}`;
+
+        options.forEach((opt, oi) => {
+          const id = `${groupName}_${oi}`;
+          const label = document.createElement('label');
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = groupName;
+          radio.value = opt;
+          radio.id = id;
+          label.setAttribute('for', id);
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(' ' + opt));
+          statusWrap.appendChild(label);
+        });
+        tdStatus.appendChild(statusWrap);
+
+        // Date cell
+        const tdDate = document.createElement('td');
+        const date = document.createElement('input');
+        date.type = 'date';
+        date.placeholder = 'Click or tap to enter a date';
+        date.id = `date_row_${idx}`;
+        tdDate.appendChild(date);
+
+        // Auto-date behaviour
+        statusWrap.addEventListener('change', (e) => {
+          const chosen = (e.target && e.target.value || '').toLowerCase();
+          if (autoOnAny || whitelist.has(chosen)) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            date.value = `${yyyy}-${mm}-${dd}`;
+          }
+          if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
+            try { JFCustomWidget.onInteract(); } catch(_){}
+          }
+        });
+
+        // Restore previous values (edit)
+        const prior = getPrior(idx);
+        if (prior) {
+          const sel = statusWrap.querySelector(`input[type="radio"][value="${escSelector(prior.status)}"]`);
+          if (sel) sel.checked = true;
+          if (prior.date) date.value = prior.date;
+        }
+
+        tr.appendChild(tdTask);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdDate);
+        tbody.appendChild(tr);
+      });
+
+      requestResize();
+    }
+
+    function requestResize() {
+      if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
+        const h = Math.ceil(document.documentElement.scrollHeight);
+        try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
+      }
+    }
+
+    function collectValue() {
+      const rows = parseLines(settings.rowsContent);
+      return rows.map((rowHtml, idx) => {
+        const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
+        const date = $(`#date_row_${idx}`);
+        return {
+          taskHtml: rowHtml,
+          taskText: stripHtml(rowHtml),
+          status: status ? status.value : '',
+          date: date ? (date.value || '') : ''
+        };
+      });
+    }
+
+    function getPrior(idx) {
+      if (!initialValue || !Array.isArray(initialValue)) return null;
+      return initialValue[idx] || null;
+    }
+
+    // ---------- Jotform integration ----------
+    function readSettings() {
+      const get = (key, dflt='') => {
+        try {
+          const v = JFCustomWidget.getWidgetSetting(key);
+          return (v !== undefined && v !== null && String(v).length) ? v : dflt;
+        } catch(_) { return dflt; }
+      };
+      settings.rowsContent       = get('rows', settings.rowsContent);
+      settings.statusOptions     = get('statusOptions', settings.statusOptions);
+      settings.headerColor       = get('headerColor', settings.headerColor);
+      settings.headerTitle       = get('headerTitle', settings.headerTitle);
+      settings.autoDateOnOptions = get('autoDateOnOptions', settings.autoDateOnOptions);
+
+      const table = $('#statusTable');
+      table.setAttribute('aria-label', settings.headerTitle);
+    }
+
+    function readInitialValue() {
+      try {
+        const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
+        if (defVal) {
+          const parsed = JSON.parse(defVal);
+          if (Array.isArray(parsed)) initialValue = parsed;
+          else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
+        }
+      } catch(_){}
+    }
+
+    JFCustomWidget.subscribe('ready', function() {
+      readSettings();
+      readInitialValue();
+      buildTable();
+    });
+
+    JFCustomWidget.subscribe('submit', function() {
+      const value = collectValue();
+      JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
+    });
+
+    window.addEventListener('load', requestResize);
+    new ResizeObserver(requestResize).observe(document.documentElement);
+  </script>
 </body>
 </html>
-

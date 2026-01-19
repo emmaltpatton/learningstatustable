@@ -206,17 +206,15 @@
   function initFromSettings() {
     const name = (k) => JFCustomWidget.getWidgetSetting(k);
     SETTINGS = {
+      tableTitle: name('Table title'),
       FirstColumnLabel: name('FirstColumnLabel'),
       SecondColumnLabel: name('SecondColumnLabel'),
       ThirdColumnLabel: name('ThirdColumnLabel'),
       ChoiceOptions: name('ChoiceOptions'),
       RowHTML_Defaults: name('RowHTML_Defaults'),
-      CSVSource: name('CSVSource'),
       DateFormat: name('DateFormat') || 'YYYY-MM-DD',
       AllowBackdate: name('AllowBackdate') !== false,
       ThemeColor: name('ThemeColor'),
-      RemoteOptionsURL: name('RemoteOptionsURL'),
-      APIAuthToken: name('APIAuthToken'),
       KV_StatusColor: name('KV_StatusColor'),
       ExternalCSS: name('ExternalCSS')
     };
@@ -228,22 +226,7 @@
       link.rel = 'stylesheet'; link.href = SETTINGS.ExternalCSS;
       document.head.appendChild(link);
     }
-    // If CSV uploaded via settings, Jotform usually provides a file URL string to the widget
-    return (async () => {
-      if (SETTINGS.CSVSource) {
-        try {
-          const res = await fetch(SETTINGS.CSVSource, { credentials: 'omit' });
-          const text = await res.text();
-          const arr = csvToRows(text);
-          // Expecting first column = HTML/markdown-ish descriptions; ignore extra columns
-          SETTINGS.__csvRows = arr.filter(r => r && r.length).map(r => [r[0] || '']);
-        } catch (e) {
-          SETTINGS.__csvRows = [];
-        }
-      }
-    })();
-  }
-  function restoreIfProvided(saved) {
+     function restoreIfProvided(saved) {
     try {
       if (!saved) return false;
       const obj = typeof saved === 'string' ? JSON.parse(saved) : saved;
@@ -277,3 +260,4 @@
     });
   });
 })();
+

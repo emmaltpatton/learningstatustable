@@ -21,7 +21,7 @@
       --form-font-family: Inter, sans-serif;
       --form-font-size: 14px;
 
-      /* NEW: text colours driven by settings */
+      /* text colours driven by settings */
       --section-title-font-color: #ffffff; /* title bar text */
       --th-font-color: #ffffff;            /* <th> text */
     }
@@ -147,68 +147,37 @@
       return null;
     }
 
-// --- PDF-safe helpers (keep only basic tags) ---
-function escapeHtml(txt) {
-  const d = document.createElement('div');
-  d.textContent = String(txt ?? '');
-  return d.innerHTML;
-}
-
-// keep <a>, <ul>, <li>, <strong>, <em>, <br> — flatten everything else to plain text
-function sanitizeTaskHtml(html) {
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = html || '';
-
-  const allowed = new Set(['A','UL','LI','STRONG','EM','BR']);
-  wrapper.querySelectorAll('*').forEach(node => {
-    if (!allowed.has(node.tagName)) {
-      // unwrap disallowed node but keep its text/children
-      const span = document.createElement('span');
-      while (node.firstChild) span.appendChild(node.firstChild);
-      node.replaceWith(span);
+    // ---------- PDF-friendly plain-text helpers ----------
+    function padRight(str, len) {
+      str = String(str ?? '');
+      if (str.length >= len) return str.slice(0, len);
+      return str + ' '.repeat(len - str.length);
     }
-  });
+    function buildPlainTextTable(rows) {
+      // tune widths as you like
+      const COLW = { task: 58, status: 14, date: 12 };
 
-  // harden links
-  wrapper.querySelectorAll('a[href]').forEach(a => {
-    a.setAttribute('target', '_blank');
-    a.setAttribute('rel', 'noopener noreferrer');
-  });
+      const lines = [];
+      const hdr =
+        padRight('Task',   COLW.task) + ' | ' +
+        padRight('Status', COLW.status) + ' | ' +
+        padRight('Date',   COLW.date);
+      const bar = '-'.repeat(hdr.length);
 
-  return wrapper.innerHTML;
-}
+      lines.push(hdr, bar);
 
-function buildPdfHtmlTable(rows, opts = {}) {
-  const headerBg = (opts.headerColor || '#0c2340');
-  const thColor  = (opts.thFontColor || '#ffffff');
+      rows.forEach(r => {
+        const taskText = (r.taskText && r.taskText.trim()) || ' ';
+        const oneline = taskText.replace(/\s*\n\s*/g, ' '); // collapse newlines
+        lines.push(
+          padRight(oneline,           COLW.task)   + ' | ' +
+          padRight(String(r.status),  COLW.status) + ' | ' +
+          padRight(String(r.date),    COLW.date)
+        );
+      });
 
-  const buf = [];
-  buf.push(
-    '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:inherit;font-size:inherit;">',
-    '<thead>',
-      `<tr style="background:${escapeHtml(headerBg)};color:${escapeHtml(thColor)};">`,
-        '<th align="left">Task</th>',
-        '<th align="left">Status</th>',
-        '<th align="left">Date</th>',
-      '</tr>',
-    '</thead>',
-    '<tbody>'
-  );
-
-  rows.forEach(r => {
-    const taskCell = r.taskHtml ? sanitizeTaskHtml(r.taskHtml) : escapeHtml(r.taskText || '');
-    buf.push(
-      '<tr>',
-        `<td>${taskCell}</td>`,
-        `<td>${escapeHtml(r.status || '')}</td>`,
-        `<td>${escapeHtml(r.date || '')}</td>`,
-      '</tr>'
-    );
-  });
-
-  buf.push('</tbody></table>');
-  return buf.join('');
-}
+      return lines.join('\n');
+    }
 
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
     let settings = {
@@ -227,227 +196,7 @@ function buildPdfHtmlTable(rows, opts = {}) {
     };
     let initialValue = null; // restored on edit
 
-    // ---------- Look & feel from settings (TOP-LEVEL, not nested) ----------
+    // ---------- Look & feel from settings ----------
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--header-color', settings.headerColor);
-      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .1));
-    }
-    function applyTypography() {
-      const root = document.documentElement;
-      if (settings.formFontFamily) root.style.setProperty('--form-font-family', settings.formFontFamily);
-      if (settings.formFontSize)   root.style.setProperty('--form-font-size', settings.formFontSize);
-    }
-    function applyWidgetColors() {
-      const root = document.documentElement;
-      if (settings.sectionTitleFontColor) root.style.setProperty('--section-title-font-color', settings.sectionTitleFontColor);
-      if (settings.thFontColor)          root.style.setProperty('--th-font-color', settings.thFontColor);
-    }
-
-    // ---------- Rendering ----------
-    function buildTable() {
-      applyTheme();
-      applyTypography();
-      applyWidgetColors();
-      renderHeaderTitle();
-
-      const tbody = $('#tableBody');
-      tbody.innerHTML = '';
-
-      const rows = parseLines(settings.rowsContent);
-      const options = parseLines(settings.statusOptions);
-      const whitelist = new Set(parseLines(settings.autoDateOnOptions).map(s => s.toLowerCase()));
-      const autoOnAny = whitelist.size === 0;
-
-      rows.forEach((rowHtml, idx) => {
-        const tr = document.createElement('tr');
-
-        // Task cell (HTML allowed)
-        const tdTask = document.createElement('td');
-        tdTask.className = 'task-html';
-        tdTask.innerHTML = rowHtml;
-        tdTask.querySelectorAll('a[href]').forEach(a => {
-          a.setAttribute('target', '_blank');
-          a.setAttribute('rel', 'noopener noreferrer');
-        });
-
-        // Status cell
-        const tdStatus = document.createElement('td');
-        const statusWrap = document.createElement('div');
-        statusWrap.className = 'status-list';
-        const groupName = `status_row_${idx}`;
-
-        options.forEach((opt, oi) => {
-          const id = `${groupName}_${oi}`;
-          const label = document.createElement('label');
-          const radio = document.createElement('input');
-          radio.type = 'radio';
-          radio.name = groupName;
-          radio.value = opt;
-          radio.id = id;
-          label.setAttribute('for', id);
-          label.appendChild(radio);
-          label.appendChild(document.createTextNode(' ' + opt));
-          statusWrap.appendChild(label);
-        });
-        tdStatus.appendChild(statusWrap);
-
-        // Date cell
-        const tdDate = document.createElement('td');
-        const date = document.createElement('input');
-        date.type = 'date';
-        date.placeholder = 'dd/mm/yyyy';
-        date.id = `date_row_${idx}`;
-        tdDate.appendChild(date);
-
-        // Auto-date behaviour
-        statusWrap.addEventListener('change', (e) => {
-          const chosen = (e.target && e.target.value || '').toLowerCase();
-          if (autoOnAny || whitelist.has(chosen)) {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            date.value = `${yyyy}-${mm}-${dd}`;
-          }
-          if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
-            try { JFCustomWidget.onInteract(); } catch(_){}
-          }
-        });
-
-        // Restore previous values (edit)
-        const prior = getPrior(idx);
-        if (prior) {
-          const sel = getRadioByValue(statusWrap, prior.status);
-          if (sel) sel.checked = true;
-          if (prior.date) date.value = prior.date;
-        }
-
-        tr.appendChild(tdTask);
-        tr.appendChild(tdStatus);
-        tr.appendChild(tdDate);
-        tbody.appendChild(tr);
-      });
-
-      requestResize();
-    }
-
-    function requestResize() {
-      if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
-        const h = Math.ceil(document.documentElement.scrollHeight);
-        try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
-      }
-    }
-
-    function collectValue() {
-      const rows = parseLines(settings.rowsContent);
-      return rows.map((rowHtml, idx) => {
-        const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
-        const date = document.querySelector(`#date_row_${idx}`);
-        return {
-          taskHtml: rowHtml,
-          taskText: stripHtml(rowHtml),
-          status: status ? status.value : '',
-          date: date ? (date.value || '') : ''
-        };
-      });
-    }
-
-    function getPrior(idx) {
-      if (!initialValue || !Array.isArray(initialValue)) return null;
-      return initialValue[idx] || null;
-    }
-
-    // ---------- Jotform helpers ----------
-    function readSettings() {
-      const get = (key, dflt='') => {
-        try {
-          const v = JFCustomWidget.getWidgetSetting(key);
-          return (v !== undefined && v !== null && String(v).length) ? v : dflt;
-        } catch(_) { return dflt; }
-      };
-      settings.rowsContent           = get('rows', settings.rowsContent);
-      settings.statusOptions         = get('statusOptions', settings.statusOptions);
-      settings.headerColor           = get('headerColor', settings.headerColor);
-      settings.headerTitle           = get('headerTitle', settings.headerTitle);
-      settings.autoDateOnOptions     = get('autoDateOnOptions', settings.autoDateOnOptions);
-      settings.formFontFamily        = get('formFontFamily', settings.formFontFamily);
-      settings.formFontSize          = get('formFontSize',   settings.formFontSize);
-      settings.sectionTitleFontColor = get('sectionTitleFontColor', settings.sectionTitleFontColor);
-      settings.thFontColor           = get('thFontColor',           settings.thFontColor);
-
-      const table = $('#statusTable');
-      table.setAttribute('aria-label', settings.headerTitle);
-    }
-
-    function readInitialValue() {
-      try {
-        const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
-        if (defVal) {
-          const parsed = JSON.parse(defVal);
-          if (Array.isArray(parsed)) initialValue = parsed;
-          else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
-        }
-      } catch(_){}
-    }
-
-    function initStandalone() { buildTable(); }
-
-    function initJotform() {
-      JFCustomWidget.subscribe('ready', function () {
-        readSettings();
-        readInitialValue();
-        buildTable();
-      });
-
-     
-JFCustomWidget.subscribe('submit', function () {
-  // 1) collect the structured value (you already have this)
-  const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
-
-  // 2) build a PDF-friendly HTML table
-  const htmlTable = buildPdfHtmlTable(structured, {
-    headerColor: settings.headerColor,
-    thFontColor: settings.thFontColor  // you already read this from settings
-  });
-
-  // 3) send HTML table as the field value so PDF Editor can render it
-  JFCustomWidget.sendSubmit({
-    valid: true,
-    value: htmlTable
-  });
-});
-
-
-      window.addEventListener('load', requestResize);
-      new ResizeObserver(requestResize).observe(document.documentElement);
-    }
-
-    // ---------- Environment detection + fallback ----------
-    (function boot() {
-      const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
-
-      if (hasAPI) {
-        let readyFired = false;
-        JFCustomWidget.subscribe('ready', function () { readyFired = true; });
-        initJotform();
-
-        setTimeout(() => {
-          if (!readyFired) {
-            console.warn('[Status Table] Jotform "ready" not received — rendering standalone.');
-            initStandalone();
-          }
-        }, 1000);
-      } else {
-        initStandalone();
-      }
-    })();
-  </script>
-
-</body>
-</html>
-
-
-
-
-

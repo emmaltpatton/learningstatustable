@@ -60,211 +60,243 @@
     </table>
   </div>
 
-  <script>
-    // ---------- Utilities ----------
-    const $ = sel => document.querySelector(sel);
+ 
+<script>
+  // ---------- Utilities ----------
+  const $ = sel => document.querySelector(sel);
 
-    function hexToRgb(hex) {
-      const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
-      if (!m) return {r:12,g:35,b:64};
-      let h = m[1];
-      if (h.length === 3) h = h.split('').map(x => x + x).join('');
-      const int = parseInt(h, 16);
-      return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
-    }
-    function tintFromHex(hex, alpha = .2) {
-      const {r,g,b} = hexToRgb(hex);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-    function stripHtml(html) {
-      const d = document.createElement('div'); d.innerHTML = html || '';
-      return (d.textContent || d.innerText || '').trim();
-    }
-    function parseLines(text) {
-      if (!text) return [];
-      return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    }
-    function escSelector(val) {
-      return (val || '').replace(/["\\[\\]\\(\\)\\^\\$*+.?{}|]/g, '\\$&');
-    }
+  function hexToRgb(hex) {
+    const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!m) return {r:12,g:35,b:64};
+    let h = m[1];
+    if (h.length === 3) h = h.split('').map(x => x + x).join('');
+    const int = parseInt(h, 16);
+    return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+  }
+  function tintFromHex(hex, alpha = .2) {
+    const {r,g,b} = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  function stripHtml(html) {
+    const d = document.createElement('div'); d.innerHTML = html || '';
+    return (d.textContent || d.innerText || '').trim();
+  }
+  function parseLines(text) {
+    if (!text) return [];
+    return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  }
+  function escSelector(val) {
+    // Escape for CSS attribute selector; avoids invalid RegExp in edge cases
+    return String(val || '').replace(/["'\\[\]\(\)\^\$*+.?{}|]/g, '\\$&');
+  }
 
-    // ---------- Configuration (defaults) ----------
-    let settings = {
-      rowsContent:
-        'Access Employee Portal within PageUp\n' +
-        'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
-        'Book into relevant learning activities in PageUp',
-      statusOptions: 'Complete\nNot Applicable',
-      headerColor: '#0c2340',
-      headerTitle: 'INDUCTION',
-      autoDateOnOptions: '' // blank => auto-stamp on ANY status change
-    };
-    let initialValue = null; // restored on edit
+  // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
+  let settings = {
+    rowsContent:
+      'Access Employee Portal within PageUp\n' +
+      'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
+      'Book into relevant learning activities in PageUp',
+    statusOptions: 'Complete\nNot Applicable',
+    headerColor: '#0c2340',
+    headerTitle: 'INDUCTION',
+    autoDateOnOptions: '' // blank => auto-stamp on ANY status change
+  };
+  let initialValue = null; // restored on edit
 
-    // ---------- Rendering ----------
-    function applyTheme() {
-      const root = document.documentElement;
-      root.style.setProperty('--header-color', settings.headerColor);
-      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
-    }
+  // ---------- Rendering ----------
+  function applyTheme() {
+    const root = document.documentElement;
+    root.style.setProperty('--header-color', settings.headerColor);
+    root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
+  }
 
-    function getAutoDateWhitelist() {
-      const opts = parseLines(settings.autoDateOnOptions);
-      return new Set(opts.map(o => o.toLowerCase()));
-    }
+  function getAutoDateWhitelist() {
+    const opts = parseLines(settings.autoDateOnOptions);
+    return new Set(opts.map(o => o.toLowerCase()));
+  }
 
-    function buildTable() {
-      applyTheme();
+  function buildTable() {
+    applyTheme();
 
-      const tbody = $('#tableBody');
-      tbody.innerHTML = '';
+    const tbody = $('#tableBody');
+    tbody.innerHTML = '';
 
-      const rows = parseLines(settings.rowsContent);
-      const options = parseLines(settings.statusOptions);
-      const whitelist = getAutoDateWhitelist();
-      const autoOnAny = whitelist.size === 0;
+    const rows = parseLines(settings.rowsContent);
+    const options = parseLines(settings.statusOptions);
+    const whitelist = getAutoDateWhitelist();
+    const autoOnAny = whitelist.size === 0;
 
-      rows.forEach((rowHtml, idx) => {
-        const tr = document.createElement('tr');
+    rows.forEach((rowHtml, idx) => {
+      const tr = document.createElement('tr');
 
-        // Task cell (HTML allowed)
-        const tdTask = document.createElement('td');
-        tdTask.className = 'task-html';
-        tdTask.innerHTML = rowHtml;
-        tdTask.querySelectorAll('a[href]').forEach(a => {
-          a.setAttribute('target', '_blank');
-          a.setAttribute('rel', 'noopener noreferrer');
-        });
-
-        // Status cell (same options per row)
-        const tdStatus = document.createElement('td');
-        const statusWrap = document.createElement('div');
-        statusWrap.className = 'status-list';
-        const groupName = `status_row_${idx}`;
-
-        options.forEach((opt, oi) => {
-          const id = `${groupName}_${oi}`;
-          const label = document.createElement('label');
-          const radio = document.createElement('input');
-          radio.type = 'radio';
-          radio.name = groupName;
-          radio.value = opt;
-          radio.id = id;
-          label.setAttribute('for', id);
-          label.appendChild(radio);
-          label.appendChild(document.createTextNode(' ' + opt));
-          statusWrap.appendChild(label);
-        });
-        tdStatus.appendChild(statusWrap);
-
-        // Date cell
-        const tdDate = document.createElement('td');
-        const date = document.createElement('input');
-        date.type = 'date';
-        date.placeholder = 'Click or tap to enter a date';
-        date.id = `date_row_${idx}`;
-        tdDate.appendChild(date);
-
-        // Auto-date behaviour
-        statusWrap.addEventListener('change', (e) => {
-          const chosen = (e.target && e.target.value || '').toLowerCase();
-          if (autoOnAny || whitelist.has(chosen)) {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            date.value = `${yyyy}-${mm}-${dd}`;
-          }
-          if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
-            try { JFCustomWidget.onInteract(); } catch(_){}
-          }
-        });
-
-        // Restore previous values (edit)
-        const prior = getPrior(idx);
-        if (prior) {
-          const sel = statusWrap.querySelector(`input[type="radio"][value="${escSelector(prior.status)}"]`);
-          if (sel) sel.checked = true;
-          if (prior.date) date.value = prior.date;
-        }
-
-        tr.appendChild(tdTask);
-        tr.appendChild(tdStatus);
-        tr.appendChild(tdDate);
-        tbody.appendChild(tr);
+      // Task cell (HTML allowed)
+      const tdTask = document.createElement('td');
+      tdTask.className = 'task-html';
+      tdTask.innerHTML = rowHtml;
+      tdTask.querySelectorAll('a[href]').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
       });
 
-      requestResize();
-    }
+      // Status cell
+      const tdStatus = document.createElement('td');
+      const statusWrap = document.createElement('div');
+      statusWrap.className = 'status-list';
+      const groupName = `status_row_${idx}`;
 
-    function requestResize() {
-      if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
-        const h = Math.ceil(document.documentElement.scrollHeight);
-        try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
+      options.forEach((opt, oi) => {
+        const id = `${groupName}_${oi}`;
+        const label = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = groupName;
+        radio.value = opt;
+        radio.id = id;
+        label.setAttribute('for', id);
+        label.appendChild(radio);
+        label.appendChild(document.createTextNode(' ' + opt));
+        statusWrap.appendChild(label);
+      });
+      tdStatus.appendChild(statusWrap);
+
+      // Date cell
+      const tdDate = document.createElement('td');
+      const date = document.createElement('input');
+      date.type = 'date';
+      date.placeholder = 'Click or tap to enter a date';
+      date.id = `date_row_${idx}`;
+      tdDate.appendChild(date);
+
+      // Auto-date behaviour
+      statusWrap.addEventListener('change', (e) => {
+        const chosen = (e.target && e.target.value || '').toLowerCase();
+        if (autoOnAny || whitelist.has(chosen)) {
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, '0');
+          const dd = String(today.getDate()).padStart(2, '0');
+          date.value = `${yyyy}-${mm}-${dd}`;
+        }
+        if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
+          try { JFCustomWidget.onInteract(); } catch(_){}
+        }
+      });
+
+      // Restore previous values (edit)
+      const prior = getPrior(idx);
+      if (prior) {
+        const sel = statusWrap.querySelector(`input[type="radio"][value="${escSelector(prior.status)}"]`);
+        if (sel) sel.checked = true;
+        if (prior.date) date.value = prior.date;
       }
-    }
 
-    function collectValue() {
-      const rows = parseLines(settings.rowsContent);
-      return rows.map((rowHtml, idx) => {
-        const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
-        const date = $(`#date_row_${idx}`);
-        return {
-          taskHtml: rowHtml,
-          taskText: stripHtml(rowHtml),
-          status: status ? status.value : '',
-          date: date ? (date.value || '') : ''
-        };
-      });
-    }
+      tr.appendChild(tdTask);
+      tr.appendChild(tdStatus);
+      tr.appendChild(tdDate);
+      tbody.appendChild(tr);
+    });
 
-    function getPrior(idx) {
-      if (!initialValue || !Array.isArray(initialValue)) return null;
-      return initialValue[idx] || null;
-    }
+    requestResize();
+  }
 
-    // ---------- Jotform integration ----------
-    function readSettings() {
-      const get = (key, dflt='') => {
-        try {
-          const v = JFCustomWidget.getWidgetSetting(key);
-          return (v !== undefined && v !== null && String(v).length) ? v : dflt;
-        } catch(_) { return dflt; }
+  function requestResize() {
+    if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
+      const h = Math.ceil(document.documentElement.scrollHeight);
+      try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
+    }
+  }
+
+  function collectValue() {
+    const rows = parseLines(settings.rowsContent);
+    return rows.map((rowHtml, idx) => {
+      const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
+      const date = document.querySelector(`#date_row_${idx}`);
+      return {
+        taskHtml: rowHtml,
+        taskText: stripHtml(rowHtml),
+        status: status ? status.value : '',
+        date: date ? (date.value || '') : ''
       };
-      settings.rowsContent       = get('rows', settings.rowsContent);
-      settings.statusOptions     = get('statusOptions', settings.statusOptions);
-      settings.headerColor       = get('headerColor', settings.headerColor);
-      settings.headerTitle       = get('headerTitle', settings.headerTitle);
-      settings.autoDateOnOptions = get('autoDateOnOptions', settings.autoDateOnOptions);
+    });
+  }
 
-      const table = $('#statusTable');
-      table.setAttribute('aria-label', settings.headerTitle);
-    }
+  function getPrior(idx) {
+    if (!initialValue || !Array.isArray(initialValue)) return null;
+    return initialValue[idx] || null;
+  }
 
-    function readInitialValue() {
+  // ---------- Jotform helpers ----------
+  function readSettings() {
+    const get = (key, dflt='') => {
       try {
-        const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
-        if (defVal) {
-          const parsed = JSON.parse(defVal);
-          if (Array.isArray(parsed)) initialValue = parsed;
-          else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
-        }
-      } catch(_){}
-    }
+        const v = JFCustomWidget.getWidgetSetting(key);
+        return (v !== undefined && v !== null && String(v).length) ? v : dflt;
+      } catch(_) { return dflt; }
+    };
+    settings.rowsContent       = get('rows', settings.rowsContent);
+    settings.statusOptions     = get('statusOptions', settings.statusOptions);
+    settings.headerColor       = get('headerColor', settings.headerColor);
+    settings.headerTitle       = get('headerTitle', settings.headerTitle);
+    settings.autoDateOnOptions = get('autoDateOnOptions', settings.autoDateOnOptions);
 
-    JFCustomWidget.subscribe('ready', function() {
+    const table = $('#statusTable');
+    table.setAttribute('aria-label', settings.headerTitle);
+  }
+
+  function readInitialValue() {
+    try {
+      const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
+      if (defVal) {
+        const parsed = JSON.parse(defVal);
+        if (Array.isArray(parsed)) initialValue = parsed;
+        else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
+      }
+    } catch(_){}
+  }
+
+  function initStandalone() {
+    buildTable();
+  }
+
+  function initJotform() {
+    JFCustomWidget.subscribe('ready', function () {
       readSettings();
       readInitialValue();
       buildTable();
     });
 
-    JFCustomWidget.subscribe('submit', function() {
+    JFCustomWidget.subscribe('submit', function () {
       const value = collectValue();
       JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
     });
 
     window.addEventListener('load', requestResize);
     new ResizeObserver(requestResize).observe(document.documentElement);
-  </script>
+  }
+
+  // ---------- Environment detection + fallback ----------
+  (function boot() {
+    const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
+
+    if (hasAPI) {
+      // Try Jotform path, but don't get stuck if 'ready' never comes.
+      let readyFired = false;
+      JFCustomWidget.subscribe('ready', function () { readyFired = true; });
+      initJotform();
+
+      setTimeout(() => {
+        if (!readyFired) {
+          console.warn('[Status Table] Jotform "ready" not received — rendering standalone.');
+          initStandalone();
+        }
+      }, 1000);
+    } else {
+      // Not in Jotform or API blocked
+      initStandalone();
+    }
+  })();
+</script>
+
 </body>
 </html>
+

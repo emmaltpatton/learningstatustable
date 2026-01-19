@@ -6,90 +6,64 @@
   <title>Learning Status Table</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Jotform Custom Widget API -->
-  <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+  <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
+
   <style>
     :root{
-      --header-color: #0c2340;              /* default header colour */
-      --row-alt-color: rgba(12,35,64,.2);   /* 20% tint of header colour */
+      /* Core colours */
+      --header-color: #0c2340;
+      --row-alt-color: rgba(12,35,64,.2);
       --border: #c8c8c8;
       --text: #222;
-    
- 
- /* existing typography vars if you added them */
-  --form-font-family: Inter, sans-serif;
-  --form-font-size: 14px;
 
-  /* NEW: font color variables driven by widget settings */
-  --section-title-font-color: #ffffff; /* default */
-  --th-font-color: #ffffff;            /* default */
-}
+      /* Typography driven by settings */
+      --form-font-family: Inter, sans-serif;
+      --form-font-size: 14px;
 
-/* Title bar above the table */
-.section-title{
-  /* your existing styles */
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  font-size: 15px;
-  color: var(--section-title-font-color);   /* ← driven by setting */
-  background: var(--header-color);
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-bottom: 0;
-  border-radius: 2px 2px 0 0;
-}
-
-/* Table header cells */
-thead th{
-  /* your existing styles */
-  text-align: left;
-  padding: 8px 10px;
-  color: var(--th-font-color);              /* ← driven by setting */
-  background: var(--header-color);
-  border-bottom: 1px solid var(--border);
-  /* If you set font-family for consistency, keep it as-is */
-  font-family: var(--form-font-family) !important;
-}
-
+      /* NEW: font colour variables driven by settings */
+      --section-title-font-color: #ffffff; /* title bar text */
+      --th-font-color: #ffffff;            /* <th> text */
+    }
 
     * { box-sizing: border-box; }
-   
 
-html, body {
-  margin: 0;
-  padding: 12px;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--form-font-family) !important;
-  font-size: var(--form-font-size);
-  line-height: 1.4;
-}
-
-    
-.section-title {
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  font-size: 15px;
-  color: #fff;
-  background: var(--header-color); /* matches your table header color */
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-bottom: 0;                 /* visually connects to the table */
-  border-radius: 2px 2px 0 0;
-}
-
-/* Ensure table & inputs match the same font */
-table, th, td,
-label, input, button, select, textarea,
-    .section-title {
-  font-family: var(--form-font-family) !important;
-  font-size: var(--form-font-size);
-}
-    .table-wrap { overflow: auto; }
-    table {width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
-    thead th {
-      text-align: left; padding: 8px 10px; color: #fff;
-      background: var(--header-color); border-bottom: 1px solid var(--border);
+    html, body {
+      margin: 0;
+      padding: 12px;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--form-font-family) !important;
+      font-size: var(--form-font-size);
+      line-height: 1.4;
     }
+
+    /* Title bar above the table */
+    .section-title{
+      margin: 0 0 8px 0;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--section-title-font-color);
+      background: var(--header-color);
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-bottom: 0;
+      border-radius: 2px 2px 0 0;
+    }
+
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
+
+    /* Header cells – single, variable-driven rule */
+    thead th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--th-font-color);
+      background: var(--header-color);
+      border-bottom: 1px solid var(--border);
+      font-family: var(--form-font-family) !important;
+      font-weight: 700;
+    }
+
     tbody td {
       vertical-align: top; padding: 6px 10px;
       border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: #fff;
@@ -99,6 +73,7 @@ label, input, button, select, textarea,
     tbody td:last-child, thead th:last-child { border-right: 0; }
 
     .task-html a { color: #84bd00; text-decoration: underline; }
+
     .status-list { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
     .status-list label { white-space: nowrap; cursor: pointer; }
 
@@ -106,12 +81,20 @@ label, input, button, select, textarea,
       width: 100%; min-width: 12ch; padding: 4px 6px;
       border: 1px solid #bfbfbf; border-radius: 3px; background: #fff;
     }
+
+    /* Ensure table & inputs use same font */
+    table, th, td,
+    label, input, button, select, textarea {
+      font-family: var(--form-font-family) !important;
+      font-size: var(--form-font-size);
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
 
-<!-- Header title container (actual HTML element) -->
-<div id="sectionTitle" class="section-title" role="heading" aria-level="2"></div>
+  <!-- Header title container -->
+  <div id="sectionTitle" class="section-title" role="heading" aria-level="2"></div>
 
   <div class="table-wrap">
     <table id="statusTable" aria-describedby="sectionTitle">
@@ -126,310 +109,267 @@ label, input, button, select, textarea,
     </table>
   </div>
 
- 
-<script>
-  // ---------- Utilities ----------
-  const $ = sel => document.querySelector(sel);
-  
-function renderHeaderTitle() {
-  const box = document.getElementById('sectionTitle');
-  if (!box) return;
-  const title = (settings.headerTitle || '').trim();
-  if (title) {
-    box.textContent = title;   // set visible heading
-    box.style.display = '';    // ensure shown
-  } else {
-    box.style.display = 'none';// hide if empty
-  }
-}
+  <script>
+    // ---------- Utilities ----------
+    const $ = sel => document.querySelector(sel);
 
-  function hexToRgb(hex) {
-    const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
-    if (!m) return {r:12,g:35,b:64};
-    let h = m[1];
-    if (h.length === 3) h = h.split('').map(x => x + x).join('');
-    const int = parseInt(h, 16);
-    return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
-  }
-  function tintFromHex(hex, alpha = .2) {
-    const {r,g,b} = hexToRgb(hex);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-  function stripHtml(html) {
-    const d = document.createElement('div'); d.innerHTML = html || '';
-    return (d.textContent || d.innerText || '').trim();
-  }
-  function parseLines(text) {
-    if (!text) return [];
-    return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-  }
-  
-function getRadioByValue(container, value) {
-  const radios = container.querySelectorAll('input[type="radio"]');
-  for (const r of radios) {
-    if (r.value === String(value)) return r;
-  }
-  return null;
-}
-
-
-  // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
-  let settings = {
-    rowsContent:
-      'Access Employee Portal within PageUp\n' +
-      'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
-      'Book into relevant learning activities in PageUp',
-    statusOptions: 'Complete\nNot Applicable',
-    headerColor: '#0c2340',
-    headerTitle: 'INDUCTION',
-    autoDateOnOptions: '' // blank => auto-stamp on ANY status change
-  };
-  let initialValue = null; // restored on edit
-
-  // ---------- Rendering ----------
-  function applyTheme() {
-    const root = document.documentElement;
-    root.style.setProperty('--header-color', settings.headerColor);
-    root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
-  }
-
-  function getAutoDateWhitelist() {
-    const opts = parseLines(settings.autoDateOnOptions);
-    return new Set(opts.map(o => o.toLowerCase()));
-  }
-
-  function buildTable() {
-    applyTheme();
-    
-  function applyTypography() {
-  const root = document.documentElement;
-  if (settings.formFontFamily) {
-    root.style.setProperty('--form-font-family', settings.formFontFamily);
-  }
-  if (settings.formFontSize) {
-    root.style.setProperty('--form-font-size', settings.formFontSize);
-  }
-}
-
-    
-applyWidgetColors();   // ← add this line
-  renderHeaderTitle && renderHeaderTitle();
-
-
-    const tbody = $('#tableBody');
-    tbody.innerHTML = '';
-
-    const rows = parseLines(settings.rowsContent);
-    const options = parseLines(settings.statusOptions);
-    const whitelist = getAutoDateWhitelist();
-    const autoOnAny = whitelist.size === 0;
-
-    rows.forEach((rowHtml, idx) => {
-      const tr = document.createElement('tr');
-
-      // Task cell (HTML allowed)
-      const tdTask = document.createElement('td');
-      tdTask.className = 'task-html';
-      tdTask.innerHTML = rowHtml;
-      tdTask.querySelectorAll('a[href]').forEach(a => {
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-      });
-
-      // Status cell
-      const tdStatus = document.createElement('td');
-      const statusWrap = document.createElement('div');
-      statusWrap.className = 'status-list';
-      const groupName = `status_row_${idx}`;
-
-      options.forEach((opt, oi) => {
-        const id = `${groupName}_${oi}`;
-        const label = document.createElement('label');
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = groupName;
-        radio.value = opt;
-        radio.id = id;
-        label.setAttribute('for', id);
-        label.appendChild(radio);
-        label.appendChild(document.createTextNode(' ' + opt));
-        statusWrap.appendChild(label);
-      });
-      tdStatus.appendChild(statusWrap);
-
-      // Date cell
-      const tdDate = document.createElement('td');
-      const date = document.createElement('input');
-      date.type = 'date';
-      date.placeholder = 'Click or tap to enter a date';
-      date.id = `date_row_${idx}`;
-      tdDate.appendChild(date);
-
-      // Auto-date behaviour
-      statusWrap.addEventListener('change', (e) => {
-        const chosen = (e.target && e.target.value || '').toLowerCase();
-        if (autoOnAny || whitelist.has(chosen)) {
-          const today = new Date();
-          const yyyy = today.getFullYear();
-          const mm = String(today.getMonth() + 1).padStart(2, '0');
-          const dd = String(today.getDate()).padStart(2, '0');
-          date.value = `${yyyy}-${mm}-${dd}`;
-        }
-        if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
-          try { JFCustomWidget.onInteract(); } catch(_){}
-        }
-      });
-
-      // Restore previous values (edit)
-      const prior = getPrior(idx);
-      if (prior) {
-        const sel = getRadioByValue(statusWrap, prior.status);
-        if (sel) sel.checked = true;
-        if (prior.date) date.value = prior.date;
+    function renderHeaderTitle() {
+      const box = document.getElementById('sectionTitle');
+      if (!box) return;
+      const title = (settings.headerTitle || '').trim();
+      if (title) {
+        box.textContent = title;
+        box.style.display = '';
+      } else {
+        box.style.display = 'none';
       }
-
-      tr.appendChild(tdTask);
-      tr.appendChild(tdStatus);
-      tr.appendChild(tdDate);
-      tbody.appendChild(tr);
-    });
-
-    requestResize();
-  }
-
-  function requestResize() {
-    if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
-      const h = Math.ceil(document.documentElement.scrollHeight);
-      try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
     }
-  }
 
-  function collectValue() {
-    const rows = parseLines(settings.rowsContent);
-    return rows.map((rowHtml, idx) => {
-      const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
-      const date = document.querySelector(`#date_row_${idx}`);
-      return {
-        taskHtml: rowHtml,
-        taskText: stripHtml(rowHtml),
-        status: status ? status.value : '',
-        date: date ? (date.value || '') : ''
-      };
-    });
-  }
+    function hexToRgb(hex) {
+      const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      if (!m) return {r:12,g:35,b:64};
+      let h = m[1];
+      if (h.length === 3) h = h.split('').map(x => x + x).join('');
+      const int = parseInt(h, 16);
+      return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+    }
+    function tintFromHex(hex, alpha = .2) {
+      const {r,g,b} = hexToRgb(hex);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    function stripHtml(html) {
+      const d = document.createElement('div'); d.innerHTML = html || '';
+      return (d.textContent || d.innerText || '').trim();
+    }
+    function parseLines(text) {
+      if (!text) return [];
+      return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    }
+    function getRadioByValue(container, value) {
+      const radios = container.querySelectorAll('input[type="radio"]');
+      for (const r of radios) if (r.value === String(value)) return r;
+      return null;
+    }
 
-  function getPrior(idx) {
-    if (!initialValue || !Array.isArray(initialValue)) return null;
-    return initialValue[idx] || null;
-  }
-
-  // ---------- Jotform helpers ----------
-  function readSettings() {
-    const get = (key, dflt='') => {
-      try {
-        const v = JFCustomWidget.getWidgetSetting(key);
-        return (v !== undefined && v !== null && String(v).length) ? v : dflt;
-      } catch(_) { return dflt; }
+    // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
+    let settings = {
+      rowsContent:
+        'Access Employee Portal within PageUp\n' +
+        'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
+        'Book into relevant learning activities in PageUp',
+      statusOptions: 'Complete\nNot Applicable',
+      headerColor: '#0c2340',
+      headerTitle: 'INDUCTION',
+      autoDateOnOptions: '',                // blank => auto-stamp on ANY status change
+      formFontFamily: 'Inter, sans-serif', // can be overridden via widget setting
+      formFontSize: '14px',
+      sectionTitleFontColor: '#ffffff',
+      thFontColor: '#ffffff'
     };
-    settings.rowsContent       = get('rows', settings.rowsContent);
-    settings.statusOptions     = get('statusOptions', settings.statusOptions);
-    settings.headerColor       = get('headerColor', settings.headerColor);
-    settings.headerTitle       = get('headerTitle', settings.headerTitle);
-    settings.autoDateOnOptions = get('autoDateOnOptions', settings.autoDateOnOptions);
-    settings.formFontFamily = get('formFontFamily', 'Inter, sans-serif');
-    settings.formFontSize   = get('formFontSize',   '14px');
-    settings.sectionTitleFontColor = get('sectionTitleFontColor', '#ffffff');
-    settings.thFontColor          = get('thFontColor',          '#ffffff');
+    let initialValue = null; // restored on edit
 
-
-function applyWidgetColors() {
-  const root = document.documentElement;
-  if (settings.sectionTitleFontColor) {
-    root.style.setProperty('--section-title-font-color', settings.sectionTitleFontColor);
-  }
-  if (settings.thFontColor) {
-    root.style.setProperty('--th-font-color', settings.thFontColor);
-  }
-  if (settings.headerColor) {
-    // keep your existing behavior for header background + zebra
-    root.style.setProperty('--header-color', settings.headerColor);
-    root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
-  }
-}
-
-
-    const table = $('#statusTable');
-    table.setAttribute('aria-label', settings.headerTitle);
-  }
-
-  function readInitialValue() {
-    try {
-      const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
-      if (defVal) {
-        const parsed = JSON.parse(defVal);
-        if (Array.isArray(parsed)) initialValue = parsed;
-        else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
-      }
-    } catch(_){}
-  }
-
-  function initStandalone() {
-    buildTable();
-  }
-
-  function initJotform() {
-    JFCustomWidget.subscribe('ready', function () {
-      readSettings();
-      readInitialValue();
-      buildTable();
-    });
-
-    JFCustomWidget.subscribe('submit', function () {
-      const value = collectValue();
-      JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
-    });
-
-    window.addEventListener('load', requestResize);
-    new ResizeObserver(requestResize).observe(document.documentElement);
-  }
-
-  // ---------- Environment detection + fallback ----------
-  (function boot() {
-    const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
-
-    if (hasAPI) {
-      // Try Jotform path, but don't get stuck if 'ready' never comes.
-      let readyFired = false;
-      JFCustomWidget.subscribe('ready', function () { readyFired = true; });
-      initJotform();
-
-      setTimeout(() => {
-        if (!readyFired) {
-          console.warn('[Status Table] Jotform "ready" not received — rendering standalone.');
-          initStandalone();
-        }
-      }, 1000);
-    } else {
-      // Not in Jotform or API blocked
-      initStandalone();
+    // ---------- Look & feel from settings ----------
+    function applyTheme() {
+      const root = document.documentElement;
+      root.style.setProperty('--header-color', settings.headerColor);
+      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .2));
     }
-  })();
-</script>
+    function applyTypography() {
+      const root = document.documentElement;
+      if (settings.formFontFamily) root.style.setProperty('--form-font-family', settings.formFontFamily);
+      if (settings.formFontSize)   root.style.setProperty('--form-font-size', settings.formFontSize);
+    }
+    function applyWidgetColors() {
+      const root = document.documentElement;
+      if (settings.sectionTitleFontColor) root.style.setProperty('--section-title-font-color', settings.sectionTitleFontColor);
+      if (settings.thFontColor)          root.style.setProperty('--th-font-color', settings.thFontColor);
+    }
+
+    // ---------- Rendering ----------
+    function buildTable() {
+      applyTheme();
+      applyTypography();
+      applyWidgetColors();
+      renderHeaderTitle();
+
+      const tbody = $('#tableBody');
+      tbody.innerHTML = '';
+
+      const rows = parseLines(settings.rowsContent);
+      const options = parseLines(settings.statusOptions);
+      const whitelist = new Set(parseLines(settings.autoDateOnOptions).map(s => s.toLowerCase()));
+      const autoOnAny = whitelist.size === 0;
+
+      rows.forEach((rowHtml, idx) => {
+        const tr = document.createElement('tr');
+
+        // Task cell (HTML allowed)
+        const tdTask = document.createElement('td');
+        tdTask.className = 'task-html';
+        tdTask.innerHTML = rowHtml;
+        tdTask.querySelectorAll('a[href]').forEach(a => {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        });
+
+        // Status cell
+        const tdStatus = document.createElement('td');
+        const statusWrap = document.createElement('div');
+        statusWrap.className = 'status-list';
+        const groupName = `status_row_${idx}`;
+
+        options.forEach((opt, oi) => {
+          const id = `${groupName}_${oi}`;
+          const label = document.createElement('label');
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = groupName;
+          radio.value = opt;
+          radio.id = id;
+          label.setAttribute('for', id);
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(' ' + opt));
+          statusWrap.appendChild(label);
+        });
+        tdStatus.appendChild(statusWrap);
+
+        // Date cell
+        const tdDate = document.createElement('td');
+        const date = document.createElement('input');
+        date.type = 'date';
+        date.placeholder = 'dd/mm/yyyy';
+        date.id = `date_row_${idx}`;
+        tdDate.appendChild(date);
+
+        // Auto-date behaviour
+        statusWrap.addEventListener('change', (e) => {
+          const chosen = (e.target && e.target.value || '').toLowerCase();
+          if (autoOnAny || whitelist.has(chosen)) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            date.value = `${yyyy}-${mm}-${dd}`;
+          }
+          if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
+            try { JFCustomWidget.onInteract(); } catch(_){}
+          }
+        });
+
+        // Restore previous values (edit)
+        const prior = getPrior(idx);
+        if (prior) {
+          const sel = getRadioByValue(statusWrap, prior.status);
+          if (sel) sel.checked = true;
+          if (prior.date) date.value = prior.date;
+        }
+
+        tr.appendChild(tdTask);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdDate);
+        tbody.appendChild(tr);
+      });
+
+      requestResize();
+    }
+
+    function requestResize() {
+      if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.requestFrameResize) {
+        const h = Math.ceil(document.documentElement.scrollHeight);
+        try { JFCustomWidget.requestFrameResize({ height: Math.max(280, h) }); } catch(_){}
+      }
+    }
+
+    function collectValue() {
+      const rows = parseLines(settings.rowsContent);
+      return rows.map((rowHtml, idx) => {
+        const status = document.querySelector(`input[name="status_row_${idx}"]:checked`);
+        const date = document.querySelector(`#date_row_${idx}`);
+        return {
+          taskHtml: rowHtml,
+          taskText: stripHtml(rowHtml),
+          status: status ? status.value : '',
+          date: date ? (date.value || '') : ''
+        };
+      });
+    }
+
+    function getPrior(idx) {
+      if (!initialValue || !Array.isArray(initialValue)) return null;
+      return initialValue[idx] || null;
+    }
+
+    // ---------- Jotform helpers ----------
+    function readSettings() {
+      const get = (key, dflt='') => {
+        try {
+          const v = JFCustomWidget.getWidgetSetting(key);
+          return (v !== undefined && v !== null && String(v).length) ? v : dflt;
+        } catch(_) { return dflt; }
+      };
+      settings.rowsContent           = get('rows', settings.rowsContent);
+      settings.statusOptions         = get('statusOptions', settings.statusOptions);
+      settings.headerColor           = get('headerColor', settings.headerColor);
+      settings.headerTitle           = get('headerTitle', settings.headerTitle);
+      settings.autoDateOnOptions     = get('autoDateOnOptions', settings.autoDateOnOptions);
+      settings.formFontFamily        = get('formFontFamily', settings.formFontFamily);
+      settings.formFontSize          = get('formFontSize',   settings.formFontSize);
+      settings.sectionTitleFontColor = get('sectionTitleFontColor', settings.sectionTitleFontColor);
+      settings.thFontColor           = get('thFontColor',          settings.thFontColor);
+
+      const table = $('#statusTable');
+      table.setAttribute('aria-label', settings.headerTitle);
+    }
+
+    function readInitialValue() {
+      try {
+        const defVal = JFCustomWidget.getDefaultValue && JFCustomWidget.getDefaultValue();
+        if (defVal) {
+          const parsed = JSON.parse(defVal);
+          if (Array.isArray(parsed)) initialValue = parsed;
+          else if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
+        }
+      } catch(_){}
+    }
+
+    function initStandalone() { buildTable(); }
+
+    function initJotform() {
+      JFCustomWidget.subscribe('ready', function () {
+        readSettings();
+        readInitialValue();
+        buildTable();
+      });
+
+      JFCustomWidget.subscribe('submit', function () {
+        const value = collectValue();
+        JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
+      });
+
+      window.addEventListener('load', requestResize);
+      new ResizeObserver(requestResize).observe(document.documentElement);
+    }
+
+    // ---------- Environment detection + fallback ----------
+    (function boot() {
+      const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
+
+      if (hasAPI) {
+        let readyFired = false;
+        JFCustomWidget.subscribe('ready', function () { readyFired = true; });
+        initJotform();
+
+        setTimeout(() => {
+          if (!readyFired) {
+            console.warn('[Status Table] Jotform "ready" not received — rendering standalone.');
+            initStandalone();
+          }
+        }, 1000);
+      } else {
+        initStandalone();
+      }
+    })();
+  </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

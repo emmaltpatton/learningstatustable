@@ -36,7 +36,7 @@
     tbody tr:last-child td { border-bottom: 0; }
     tbody td:last-child, thead th:last-child { border-right: 0; }
 
-    .task-html a { color: #0b6cf0; text-decoration: underline; }
+    .task-html a { color: #84bd00; text-decoration: underline; }
     .status-list { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
     .status-list label { white-space: nowrap; cursor: pointer; }
 
@@ -47,7 +47,7 @@
   </style>
 </head>
 <body>
-  <h4> id= "headerTitle" </h4>
+<div id="headerTitle" class="section-title" role="heading" aria-level="2"></div>
   <div class="table-wrap">
     <table id="statusTable" aria-describedby="sectionTitle">
       <thead>
@@ -305,6 +305,7 @@ function getRadioByValue(container, value) {
 
 </body>
 </html>
+
 
 
 

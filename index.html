@@ -41,7 +41,11 @@ body {
 
 
     .table-wrap { overflow: auto; }
-    table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
+    table th, td {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
     thead th {
       text-align: left; padding: 8px 10px; color: #fff;
       background: var(--header-color); border-bottom: 1px solid var(--border);
@@ -339,6 +343,7 @@ function getRadioByValue(container, value) {
 
 </body>
 </html>
+
 
 
 

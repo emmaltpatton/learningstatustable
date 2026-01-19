@@ -21,7 +21,7 @@ html, body {
 
 .container { padding: var(--pad); max-width: 980px; }
 
-.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: #0c2340}
 .header-actions { display: inline-flex; align-items: center; gap: 8px; }
 
 .btn {
@@ -83,3 +83,4 @@ html, body {
   color: var(--danger);
   margin-top: 10px;
 }
+

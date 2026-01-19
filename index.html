@@ -129,7 +129,7 @@
       const int = parseInt(h, 16);
       return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
     }
-    function tintFromHex(hex, alpha = .2) {
+    function tintFromHex(hex, alpha = .1) {
       const {r,g,b} = hexToRgb(hex);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
@@ -369,3 +369,4 @@
 
 </body>
 </html>
+

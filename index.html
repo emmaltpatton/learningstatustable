@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <title>Status Table with Auto Date</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Jotform Custom Widget API -->
-  <script src="//js.jotform.com/JotFormCustomWidget.min.js"></script>
+  <!-- ✅ Correct Jotform Custom Widget API include -->
+  <script src="https://js.jotform.com/JotFormCustomWidget.min.js"></script>
   <style>
     :root{
       --header-color: #0c2340;              /* default header colour */
@@ -14,14 +14,12 @@
       --border: #c8c8c8;
       --text: #222;
     }
-
     * { box-sizing: border-box; }
     body {
       margin: 0; padding: 12px;
       font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
       color: var(--text); background: transparent;
     }
-
     .table-wrap { overflow: auto; }
     table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
     thead th {
@@ -88,12 +86,12 @@
       return (val || '').replace(/["\\[\\]\\(\\)\\^\\$*+.?{}|]/g, '\\$&');
     }
 
-    // ---------- Configuration (defaults) ----------
+    // ---------- Defaults (overridden by Widget Settings) ----------
     let settings = {
       rowsContent:
         'Access Employee Portal within PageUp\n' +
-        'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policy">Workplace Behaviour</a></li></ul>\n' +
-        'Book into relevant learning activities in PageUp',
+        'Access the Page Up: Learning Library from the intranet homepage\n' +
+        'Complete all Corporate Inductions in PageUp:<ul><li><a href="https://intranet/policies">Workplace Behaviour</a></li></ul>',
       statusOptions: 'Complete\nNot Applicable',
       headerColor: '#0c2340',
       headerTitle: 'INDUCTION',
@@ -252,19 +250,23 @@
       } catch(_){}
     }
 
-    JFCustomWidget.subscribe('ready', function() {
-      readSettings();
-      readInitialValue();
-      buildTable();
-    });
+    function inJotformIframe() {
+      return typeof JFCustomWidget !== 'undefined' && typeof JFCustomWidget.subscribe === 'function';
+    }
 
-    JFCustomWidget.subscribe('submit', function() {
-      const value = collectValue();
-      JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
-    });
+    // Normal Jotform flow
+    if (inJotformIframe()) {
+      JFCustomWidget.subscribe('ready', function() {
+        readSettings();
+        readInitialValue();
+        buildTable();
+      });
 
-    window.addEventListener('load', requestResize);
-    new ResizeObserver(requestResize).observe(document.documentElement);
-  </script>
-</body>
-</html>
+      JFCustomWidget.subscribe('submit', function() {
+        const value = collectValue();
+        JFCustomWidget.sendSubmit({ valid: true, value: JSON.stringify(value) });
+      });
+
+      window.addEventListener('load', requestResize);
+      new ResizeObserver(requestResize).observe(document.documentElement);
+    } else {

@@ -22,6 +22,20 @@
       color: var(--text); background: transparent;
     }
 
+    
+.section-title {
+  margin: 0 0 8px 0;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+  background: var(--header-color); /* matches your table header color */
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-bottom: 0;                 /* visually connects to the table */
+  border-radius: 2px 2px 0 0;
+}
+
+
     .table-wrap { overflow: auto; }
     table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
     thead th {
@@ -47,7 +61,10 @@
   </style>
 </head>
 <body>
-<div id="headerTitle" class="section-title" role="heading" aria-level="2"></div>
+
+<!-- Header title container (actual HTML element) -->
+<div id="sectionTitle" class="section-title" role="heading" aria-level="2"></div>
+
   <div class="table-wrap">
     <table id="statusTable" aria-describedby="sectionTitle">
       <thead>
@@ -65,6 +82,18 @@
 <script>
   // ---------- Utilities ----------
   const $ = sel => document.querySelector(sel);
+  
+function renderHeaderTitle() {
+  const box = document.getElementById('sectionTitle');
+  if (!box) return;
+  const title = (settings.headerTitle || '').trim();
+  if (title) {
+    box.textContent = title;   // set visible heading
+    box.style.display = '';    // ensure shown
+  } else {
+    box.style.display = 'none';// hide if empty
+  }
+}
 
   function hexToRgb(hex) {
     const m = (hex || '').trim().replace(/^#/, '').match(/^([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -123,6 +152,7 @@ function getRadioByValue(container, value) {
 
   function buildTable() {
     applyTheme();
+    renderHeaderTitle(); 
 
     const tbody = $('#tableBody');
     tbody.innerHTML = '';
@@ -305,6 +335,7 @@ function getRadioByValue(container, value) {
 
 </body>
 </html>
+
 
 
 

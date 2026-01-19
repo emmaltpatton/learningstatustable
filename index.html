@@ -129,7 +129,7 @@
       const int = parseInt(h, 16);
       return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
     }
-    function tintFromHex(hex, alpha = .01) {
+    function tintFromHex(hex, alpha = .1) {
       const {r,g,b} = hexToRgb(hex);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
@@ -168,7 +168,7 @@
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--header-color', settings.headerColor);
-      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .01));
+      root.style.setProperty('--row-alt-color', tintFromHex(settings.headerColor, .1));
     }
     function applyTypography() {
       const root = document.documentElement;
@@ -369,6 +369,7 @@
 
 </body>
 </html>
+
 
 
 

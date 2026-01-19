@@ -85,10 +85,15 @@
     if (!text) return [];
     return text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
   }
-  function escSelector(val) {
-    // Escape for CSS attribute selector; avoids invalid RegExp in edge cases
-    return String(val || '').replace(/["'\\[\]\(\)\^\$*+.?{}|]/g, '\\$&');
+  
+function getRadioByValue(container, value) {
+  const radios = container.querySelectorAll('input[type="radio"]');
+  for (const r of radios) {
+    if (r.value === String(value)) return r;
   }
+  return null;
+}
+
 
   // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
   let settings = {
@@ -185,7 +190,7 @@
       // Restore previous values (edit)
       const prior = getPrior(idx);
       if (prior) {
-        const sel = statusWrap.querySelector(`input[type="radio"][value="${escSelector(prior.status)}"]`);
+        const sel = getRadioByValue(statusWrap, prior.status);
         if (sel) sel.checked = true;
         if (prior.date) date.value = prior.date;
       }
@@ -299,4 +304,5 @@
 
 </body>
 </html>
+
 

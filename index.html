@@ -177,37 +177,40 @@ function sanitizeTaskHtml(html) {
   return wrapper.innerHTML;
 }
 
-function buildPdfHtmlTable(rows, opts = {}) {
-  const headerBg = (opts.headerColor || '#0c2340');
-  const thColor  = (opts.thFontColor || '#ffffff');
 
-  const buf = [];
-  buf.push(
-    '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:inherit;font-size:inherit;">',
-    '<thead>',
-      `<tr style="background:${escapeHtml(headerBg)};color:${escapeHtml(thColor)};">`,
-        '<th align="left">Task</th>',
-        '<th align="left">Status</th>',
-        '<th align="left">Date</th>',
-      '</tr>',
-    '</thead>',
-    '<tbody>'
-  );
 
-  rows.forEach(r => {
-    const taskCell = r.taskHtml ? sanitizeTaskHtml(r.taskHtml) : escapeHtml(r.taskText || '');
-    buf.push(
-      '<tr>',
-        `<td>${taskCell}</td>`,
-        `<td>${escapeHtml(r.status || '')}</td>`,
-        `<td>${escapeHtml(r.date || '')}</td>`,
-      '</tr>'
-    );
+function buildBoxTable_Roboto(rows, dateDisplay) {
+  // Roboto isn’t monospaced; columns need wider padding for proportional fonts.
+  // These widths are visually tuned for Jotform PDF using Roboto Regular 12–14pt.
+
+  const COL1 = 52;   // Task column
+  const COL2 = 18;   // Status column
+  const COL3 = 12;   // Date column
+
+  function pad(str, len) {
+    if (str.length > len) {
+      return str.substring(0, len - 1) + "…";
+    }
+    return str.padEnd(len, " ");
+  }
+
+  const top    = `┌${"─".repeat(COL1)}┬${"─".repeat(COL2)}┬${"─".repeat(COL3)}┐`;
+  const header = `│${pad("Task", COL1)}│${pad("Status", COL2)}│${pad("Date", COL3)}│`;
+  const sep    = `├${"─".repeat(COL1)}┼${"─".repeat(COL2)}┼${"─".repeat(COL3)}┤`;
+  const bottom = `└${"─".repeat(COL1)}┴${"─".repeat(COL2)}┴${"─".repeat(COL3)}┘`;
+
+  const body = rows.map(r => {
+    const status = r.status === "Complete"
+      ? "✓ Complete"
+      : r.status === "Not Applicable"
+        ? "✗ Not App."
+        : "";
+    return `│${pad(r.task, COL1)}│${pad(status, COL2)}│${pad(dateDisplay, COL3)}│`;
   });
 
-  buf.push('</tbody></table>');
-  return buf.join('');
+  return [top, header, sep, ...body, bottom].join("\n");
 }
+
 
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
     let settings = {
@@ -406,10 +409,10 @@ function buildPdfHtmlTable(rows, opts = {}) {
         const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
         const title = (settings.headerTitle || '').trim();
         const txtTable = buildPlainTextTable(structured);
-        const finalText = title ? (title + '\n' + txtTable) : txtTable;
+        const tableText = buildBoxTable_Roboto(currentState.rows, currentState.dateDisplay);
         JFCustomWidget.sendSubmit({
           valid: true,
-          value: finalText              // <-- PDF editor will print this cleanly
+          value: tableText              // <-- PDF editor will print this cleanly
         });
       });
 
@@ -440,3 +443,4 @@ function buildPdfHtmlTable(rows, opts = {}) {
 
 </body>
 </html>
+

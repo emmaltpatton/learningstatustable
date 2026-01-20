@@ -412,7 +412,9 @@ function buildBoxTable_Roboto_PerRow(rows) {
      
 
 
-// >>> REPLACE: safe, single-call submit that never references currentState
+
+// >>> REPLACE: safe, single-call submit that never references currentState,
+// >>> and outputs a monospaced <pre> block so columns align perfectly in PDF.
 JFCustomWidget.subscribe('submit', function () {
   try {
     const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
@@ -429,16 +431,30 @@ JFCustomWidget.subscribe('submit', function () {
       });
     }
 
-    const tableText = buildBoxTable_Roboto_PerRow(rows);
+    // Auto-tuned widths based on your actual longest rows
+    const tableText = buildBoxTable_Auto(rows, {
+      // You can tweak these if you ever need tighter/wider lines
+      maxTotal: 98,       // target total chars across 3 columns (content only)
+      minTask:  42, maxTask: 74,
+      minStatus: 12, maxStatus: 22,
+      dateWidth: 10       // dd/MM/yyyy
+    });
+
     if (!tableText || !tableText.trim()) {
       return JFCustomWidget.sendSubmit({
         valid: false, value: "", error: "Formatter returned empty output."
       });
     }
 
+    // Wrap in <pre> to force monospaced rendering even when the PDF uses Roboto
+    const htmlBlock =
+      `<pre style="font-family: Courier New, Courier, monospace; font-size: 12pt; line-height: 1.35; white-space: pre;">` +
+      tableText +
+      `</pre>`;
+
     JFCustomWidget.sendSubmit({
       valid: true,
-      value: tableText
+      value: htmlBlock
     });
   } catch (err) {
     JFCustomWidget.sendSubmit({
@@ -449,6 +465,7 @@ JFCustomWidget.subscribe('submit', function () {
     try { console.error(err); } catch(_) {}
   }
 });
+
 
       window.addEventListener('load', requestResize);
       new ResizeObserver(requestResize).observe(document.documentElement);
@@ -477,5 +494,6 @@ JFCustomWidget.subscribe('submit', function () {
 
 </body>
 </html>
+
 
 

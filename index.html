@@ -177,21 +177,25 @@ function sanitizeTaskHtml(html) {
   return wrapper.innerHTML;
 }
 
+// >>> ADD: date helpers for PDF display (AU dd/MM/yyyy)
+function isoToAU(iso) {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+function todayAU() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
 
 
-function buildBoxTable_Roboto(rows, dateDisplay) {
-  // Roboto isn’t monospaced; columns need wider padding for proportional fonts.
-  // These widths are visually tuned for Jotform PDF using Roboto Regular 12–14pt.
-
-  const COL1 = 52;   // Task column
-  const COL2 = 18;   // Status column
-  const COL3 = 12;   // Date column
+// >>> ADD: build table using a per-row dateDisplay
+function buildBoxTable_Roboto_PerRow(rows) {
+  const COL1 = 52, COL2 = 18, COL3 = 12;   // tuned for Roboto 12–14pt in Jotform PDF
 
   function pad(str, len) {
-    if (str.length > len) {
-      return str.substring(0, len - 1) + "…";
-    }
-    return str.padEnd(len, " ");
+    str = String(str ?? "");
+    return str.length > len ? str.slice(0, len - 1) + "…" : str.padEnd(len, " ");
   }
 
   const top    = `┌${"─".repeat(COL1)}┬${"─".repeat(COL2)}┬${"─".repeat(COL3)}┐`;
@@ -199,17 +203,20 @@ function buildBoxTable_Roboto(rows, dateDisplay) {
   const sep    = `├${"─".repeat(COL1)}┼${"─".repeat(COL2)}┼${"─".repeat(COL3)}┤`;
   const bottom = `└${"─".repeat(COL1)}┴${"─".repeat(COL2)}┴${"─".repeat(COL3)}┘`;
 
-  const body = rows.map(r => {
+  const body = (rows || []).map(r => {
     const status = r.status === "Complete"
       ? "✓ Complete"
       : r.status === "Not Applicable"
         ? "✗ Not App."
         : "";
-    return `│${pad(r.task, COL1)}│${pad(status, COL2)}│${pad(dateDisplay, COL3)}│`;
+    const dateDisp = r.dateDisplay || "";
+    return `│${pad(r.task, COL1)}│${pad(status, COL2)}│${pad(dateDisp, COL3)}│`;
   });
 
   return [top, header, sep, ...body, bottom].join("\n");
 }
+``
+
 
 
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
@@ -404,17 +411,44 @@ function buildBoxTable_Roboto(rows, dateDisplay) {
 
      
 
- // ✅ Send a plain-text table that renders in Jotform PDF
-      JFCustomWidget.subscribe('submit', function () {
-        const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
-        const title = (settings.headerTitle || '').trim();
-        const txtTable = buildPlainTextTable(structured);
-        const tableText = buildBoxTable_Roboto(currentState.rows, currentState.dateDisplay);
-        JFCustomWidget.sendSubmit({
-          valid: true,
-          value: tableText              // <-- PDF editor will print this cleanly
-        });
+
+// >>> REPLACE: safe, single-call submit that never references currentState
+JFCustomWidget.subscribe('submit', function () {
+  try {
+    const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
+    const rows = (structured || []).map(item => ({
+      task: (item.taskText || stripHtml(item.taskHtml) || "").trim(),
+      status: item.status || "",
+      // convert "yyyy-mm-dd" -> "dd/MM/yyyy"; fallback to today if blank
+      dateDisplay: isoToAU(item.date) || todayAU()
+    }));
+
+    if (!rows.length) {
+      return JFCustomWidget.sendSubmit({
+        valid: false, value: "", error: "No rows to render."
       });
+    }
+
+    const tableText = buildBoxTable_Roboto_PerRow(rows);
+    if (!tableText || !tableText.trim()) {
+      return JFCustomWidget.sendSubmit({
+        valid: false, value: "", error: "Formatter returned empty output."
+      });
+    }
+
+    JFCustomWidget.sendSubmit({
+      valid: true,
+      value: tableText
+    });
+  } catch (err) {
+    JFCustomWidget.sendSubmit({
+      valid: false,
+      value: "",
+      error: (err && err.message) ? err.message : "Widget error"
+    });
+    try { console.error(err); } catch(_) {}
+  }
+});
 
       window.addEventListener('load', requestResize);
       new ResizeObserver(requestResize).observe(document.documentElement);
@@ -443,4 +477,5 @@ function buildBoxTable_Roboto(rows, dateDisplay) {
 
 </body>
 </html>
+
 

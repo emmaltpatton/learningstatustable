@@ -143,39 +143,11 @@
       return null;
     }
 
-    // --- PDF-safe helpers (left in place; not used for neat text submission) ---
-    function escapeHtml(txt) {
-      const d = document.createElement('div');
-      d.textContent = String(txt ?? '');
-      return d.innerHTML;
-    }
-    function sanitizeTaskHtml(html) {
-      const wrapper = document.createElement('div');
-      wrapper.innerHTML = html || '';
-      const allowed = new Set(['A','UL','LI','STRONG','EM','BR']);
-      wrapper.querySelectorAll('*').forEach(node => {
-        if (!allowed.has(node.tagName)) {
-          const span = document.createElement('span');
-          while (node.firstChild) span.appendChild(node.firstChild);
-          node.replaceWith(span);
-        }
-      });
-      wrapper.querySelectorAll('a[href]').forEach(a => {
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-      });
-      return wrapper.innerHTML;
-    }
-
     // AU date helpers
     function isoToAU(iso) {
       if (!iso) return "";
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
       return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
-    }
-    function todayAU() {
-      const d = new Date();
-      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     }
 
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
@@ -268,6 +240,9 @@
         date.id = `date_row_${idx}`;
         tdDate.appendChild(date);
 
+        // ✅ CHANGE: save progress when date changes
+        date.addEventListener('change', pushDraftValue);
+
         // Auto-date behaviour
         statusWrap.addEventListener('change', (e) => {
           const chosen = ((e.target && e.target.value) || '').toLowerCase();
@@ -278,12 +253,12 @@
             const dd = String(today.getDate()).padStart(2, '0');
             date.value = `${yyyy}-${mm}-${dd}`;
           }
-          if (typeof JFCustomWidget !== 'undefined' && JFCustomWidget.onInteract) {
-            try { JFCustomWidget.onInteract(); } catch(_){}
-          }
+
+          // ✅ CHANGE: save progress when status changes
+          pushDraftValue();
         });
 
-        // Restore previous values (edit)
+        // Restore previous values (edit / draft)
         const prior = getPrior(idx);
         if (prior) {
           const sel = getRadioByValue(statusWrap, prior.status);
@@ -361,46 +336,84 @@
 
     function initStandalone() { buildTable(); }
 
-    // ✅ UPDATED initJotform (submit after ready + guard + no duplicate outer braces)
+    // ✅ CHANGE: Draft persistence helpers using sendData (can be sent anytime) 
+    let __draftTimer = null;
+
+    function buildDraftPayload() {
+      return JSON.stringify({ rows: collectValue() });
+    }
+
+    function pushDraftValue() {
+      if (!window.JFCustomWidget || typeof JFCustomWidget.sendData !== 'function') return;
+
+      clearTimeout(__draftTimer);
+      __draftTimer = setTimeout(() => {
+        try {
+          JFCustomWidget.sendData({ value: buildDraftPayload() });
+
+          // optional: signals interaction (helps some embeds/drafts)
+          if (JFCustomWidget.onInteract) { try { JFCustomWidget.onInteract(); } catch(_){} }
+        } catch(_) {}
+      }, 150);
+    }
+
+    // ✅ UPDATED initJotform: restore from ready(data.value) and save drafts
     function initJotform() {
-      JFCustomWidget.subscribe('ready', function () {
+      JFCustomWidget.subscribe('ready', function (data) {
         window.__statusTableReadyFired = true;
 
         readSettings();
+
+        // Existing restore (edit mode)
         readInitialValue();
+
+        // ✅ CHANGE: prefer restoring from ready event value if it's our draft JSON 
+        try {
+          const v = (data && data.value) ? String(data.value) : '';
+          if (v) {
+            const parsed = JSON.parse(v);
+            if (parsed && Array.isArray(parsed.rows)) initialValue = parsed.rows;
+            else if (Array.isArray(parsed)) initialValue = parsed;
+          }
+        } catch (_) {}
+
         buildTable();
 
         // Bind submit once
         if (!window.__statusTableSubmitBound) {
           window.__statusTableSubmitBound = true;
 
-          // ✅ Neat plain text submit (no box table)
-       
-FCustomWidget.subscribe('submit', function () {
-  try {
-    const rows = collectValue() || [];
-    const lines = [];
+          // ✅ Final submit = neat Option B text for PDF (no titles)
+          // submit event fires on actual form submit / next page 
+          JFCustomWidget.subscribe('submit', function () {
+            try {
+              const rows = collectValue() || [];
+              const lines = [];
 
-    rows.forEach(r => {
-      const task   = (r.taskText || stripHtml(r.taskHtml) || '').trim();
-      const status = (r.status || '').trim();
-      const date   = isoToAU(r.date) || '';
+              rows.forEach(r => {
+                const task = String((r.taskText || stripHtml(r.taskHtml) || '')).trim();
+                const status = String(r.status || '').trim();
+                const date = isoToAU(r.date) || '';
 
-      if (!task) return;
+                if (!task) return;
 
-      const extras = [];
-      if (status) extras.push(status);
-      if (date) extras.push(date);
+                const extras = [];
+                if (status) extras.push(status);
+                if (date) extras.push(date);
 
-      lines.push(extras.length ? `- ${task} (${extras.join(', ')})` : `- ${task}`);
-    });
+                lines.push(extras.length ? `- ${task} (${extras.join(', ')})` : `- ${task}`);
+              });
 
-    const output = lines.join('\n').trim();
-    JFCustomWidget.sendSubmit({ valid: true, value: output || ' ' });
-  } catch (e) {
-    JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
-  }
-});
+              const output = lines.join('\n').trim();
+
+              JFCustomWidget.sendSubmit({
+                valid: true,
+                value: output || ' '
+              });
+            } catch (e) {
+              JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
+            }
+          });
         }
 
         // resize hooks
@@ -411,7 +424,7 @@ FCustomWidget.subscribe('submit', function () {
       });
     }
 
-    // ✅ UPDATED boot: no extra stray listeners/braces; keeps fallback
+    // boot with fallback
     (function boot() {
       const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
 
@@ -433,7 +446,3 @@ FCustomWidget.subscribe('submit', function () {
 
 </body>
 </html>
-
-
-
-

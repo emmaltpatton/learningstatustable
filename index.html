@@ -189,33 +189,6 @@ function todayAU() {
 }
 
 
-// >>> ADD: build table using a per-row dateDisplay
-function buildBoxTable_Roboto_PerRow(rows) {
-  const COL1 = 52, COL2 = 18, COL3 = 12;   // tuned for Roboto 12–14pt in Jotform PDF
-
-  function pad(str, len) {
-    str = String(str ?? "");
-    return str.length > len ? str.slice(0, len - 1) + "…" : str.padEnd(len, " ");
-  }
-
-  const top    = `┌${"─".repeat(COL1)}┬${"─".repeat(COL2)}┬${"─".repeat(COL3)}┐`;
-  const header = `│${pad("Task", COL1)}│${pad("Status", COL2)}│${pad("Date", COL3)}│`;
-  const sep    = `├${"─".repeat(COL1)}┼${"─".repeat(COL2)}┼${"─".repeat(COL3)}┤`;
-  const bottom = `└${"─".repeat(COL1)}┴${"─".repeat(COL2)}┴${"─".repeat(COL3)}┘`;
-
-  const body = (rows || []).map(r => {
-    const status = r.status === "Complete"
-      ? "✓ Complete"
-      : r.status === "Not Applicable"
-        ? "✗ Not App."
-        : "";
-    const dateDisp = r.dateDisplay || "";
-    return `│${pad(r.task, COL1)}│${pad(status, COL2)}│${pad(dateDisp, COL3)}│`;
-  });
-
-  return [top, header, sep, ...body, bottom].join("\n");
-}
-``
 
 
 
@@ -413,64 +386,58 @@ function buildBoxTable_Roboto_PerRow(rows) {
 
 
 
-// >>> REPLACE: safe, single-call submit that never references currentState,
-// >>> and outputs a monospaced <pre> block so columns align perfectly in PDF.
+// SUBMIT: neat PLAIN TEXT (no HTML, no box table)
 JFCustomWidget.subscribe('submit', function () {
   try {
     const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
-    const rows = (structured || []).map(item => ({
-      task: (item.taskText || stripHtml(item.taskHtml) || "").trim(),
-      status: item.status || "",
-      // convert "yyyy-mm-dd" -> "dd/MM/yyyy"; fallback to today if blank
-      dateDisplay: isoToAU(item.date) || todayAU()
-    }));
 
-    if (!rows.length) {
+    const title = (settings.headerTitle || "").trim();
+    const lines = [];
+
+    if (title) lines.push(title);
+
+    (structured || []).forEach((item) => {
+      const task = (item.taskText || stripHtml(item.taskHtml) || "").trim();
+      const status = (item.status || "").trim();
+      const dateAU = isoToAU(item.date || ""); // yyyy-mm-dd -> dd/MM/yyyy
+
+      // Build a clean line; only include parts that exist
+      // Example: "- Task — Status — dd/MM/yyyy"
+      const parts = [task].filter(Boolean);
+
+      if (status) parts.push(status);
+      if (dateAU) parts.push(dateAU);
+
+      // If you want a date even when blank, uncomment:
+      // if (!dateAU && status) parts.push(todayAU());
+
+      // Skip empty rows entirely
+      if (parts.length) {
+        lines.push(`- ${parts.join(" — ")}`);
+      }
+    });
+
+    const output = lines.join("\n").trim();
+
+    if (!output) {
       return JFCustomWidget.sendSubmit({
-        valid: false, value: "", error: "No rows to render."
+        valid: false,
+        value: "",
+        error: "No checklist rows to submit."
       });
     }
 
-    // Auto-tuned widths based on your actual longest rows
-    const tableText = buildBoxTable_Auto(rows, {
-      // You can tweak these if you ever need tighter/wider lines
-      maxTotal: 98,       // target total chars across 3 columns (content only)
-      minTask:  42, maxTask: 74,
-      minStatus: 12, maxStatus: 22,
-      dateWidth: 10       // dd/MM/yyyy
-    });
-
-    if (!tableText || !tableText.trim()) {
-      return JFCustomWidget.sendSubmit({
-        valid: false, value: "", error: "Formatter returned empty output."
-      });
-    }
-
-    // Wrap in <pre> to force monospaced rendering even when the PDF uses Roboto
-    const htmlBlock =
-      `<pre style="font-family: Courier New, Courier, monospace; font-size: 12pt; line-height: 1.35; white-space: pre;">` +
-      tableText +
-      `</pre>`;
-
-    JFCustomWidget.sendSubmit({
-      valid: true,
-      value: htmlBlock
-    });
+    // ✅ Plain text output
+    JFCustomWidget.sendSubmit({ valid: true, value: output });
   } catch (err) {
     JFCustomWidget.sendSubmit({
       valid: false,
       value: "",
       error: (err && err.message) ? err.message : "Widget error"
     });
-    try { console.error(err); } catch(_) {}
+    try { console.error(err); } catch (_) {}
   }
-});
-
-
-      window.addEventListener('load', requestResize);
-      new ResizeObserver(requestResize).observe(document.documentElement);
-    }
-
+})
     // ---------- Environment detection + fallback ----------
     (function boot() {
       const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
@@ -494,6 +461,7 @@ JFCustomWidget.subscribe('submit', function () {
 
 </body>
 </html>
+
 
 
 

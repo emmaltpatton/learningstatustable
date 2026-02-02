@@ -20,7 +20,7 @@
       --form-font-family: Inter, sans-serif;
       --form-font-size: 14px;
 
-      /* NEW: text colours driven by settings */
+      /* text colours driven by settings */
       --section-title-font-color: #ffffff; /* title bar text */
       --th-font-color: #ffffff;            /* <th> text */
     }
@@ -53,7 +53,6 @@
     .table-wrap { overflow: auto; }
     table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); background: #fff; }
 
-    /* Single, variable-driven header rule */
     thead th {
       text-align: left;
       padding: 8px 10px;
@@ -82,7 +81,6 @@
       border: 1px solid #bfbfbf; border-radius: 3px; background: #fff;
     }
 
-    /* Ensure table & inputs use same font */
     table, th, td, label, input, button, select, textarea {
       font-family: var(--form-font-family) !important;
       font-size: var(--form-font-size);
@@ -92,7 +90,6 @@
 </head>
 <body>
 
-  <!-- Header title container -->
   <div id="sectionTitle" class="section-title" role="heading" aria-level="2"></div>
 
   <div class="table-wrap">
@@ -146,78 +143,40 @@
       return null;
     }
 
-// --- PDF-safe helpers (keep only basic tags) ---
-function escapeHtml(txt) {
-  const d = document.createElement('div');
-  d.textContent = String(txt ?? '');
-  return d.innerHTML;
-}
-
-// keep <a>, <ul>, <li>, <strong>, <em>, <br> — flatten everything else to plain text
-function sanitizeTaskHtml(html) {
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = html || '';
-
-  const allowed = new Set(['A','UL','LI','STRONG','EM','BR']);
-  wrapper.querySelectorAll('*').forEach(node => {
-    if (!allowed.has(node.tagName)) {
-      // unwrap disallowed node but keep its text/children
-      const span = document.createElement('span');
-      while (node.firstChild) span.appendChild(node.firstChild);
-      node.replaceWith(span);
+    // --- PDF-safe helpers (left in place; not used for neat text submission) ---
+    function escapeHtml(txt) {
+      const d = document.createElement('div');
+      d.textContent = String(txt ?? '');
+      return d.innerHTML;
     }
-  });
+    function sanitizeTaskHtml(html) {
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html || '';
+      const allowed = new Set(['A','UL','LI','STRONG','EM','BR']);
+      wrapper.querySelectorAll('*').forEach(node => {
+        if (!allowed.has(node.tagName)) {
+          const span = document.createElement('span');
+          while (node.firstChild) span.appendChild(node.firstChild);
+          node.replaceWith(span);
+        }
+      });
+      wrapper.querySelectorAll('a[href]').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+      return wrapper.innerHTML;
+    }
 
-  // harden links
-  wrapper.querySelectorAll('a[href]').forEach(a => {
-    a.setAttribute('target', '_blank');
-    a.setAttribute('rel', 'noopener noreferrer');
-  });
-
-  return wrapper.innerHTML;
-}
-
-// >>> ADD: date helpers for PDF display (AU dd/MM/yyyy)
-function isoToAU(iso) {
-  if (!iso) return "";
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
-}
-function todayAU() {
-  const d = new Date();
-  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-}
-
-
-// >>> ADD: build table using a per-row dateDisplay
-function buildBoxTable_Roboto_PerRow(rows) {
-  const COL1 = 52, COL2 = 18, COL3 = 12;   // tuned for Roboto 12–14pt in Jotform PDF
-
-  function pad(str, len) {
-    str = String(str ?? "");
-    return str.length > len ? str.slice(0, len - 1) + "…" : str.padEnd(len, " ");
-  }
-
-  const top    = `┌${"─".repeat(COL1)}┬${"─".repeat(COL2)}┬${"─".repeat(COL3)}┐`;
-  const header = `│${pad("Task", COL1)}│${pad("Status", COL2)}│${pad("Date", COL3)}│`;
-  const sep    = `├${"─".repeat(COL1)}┼${"─".repeat(COL2)}┼${"─".repeat(COL3)}┤`;
-  const bottom = `└${"─".repeat(COL1)}┴${"─".repeat(COL2)}┴${"─".repeat(COL3)}┘`;
-
-  const body = (rows || []).map(r => {
-    const status = r.status === "Complete"
-      ? "✓ Complete"
-      : r.status === "Not Applicable"
-        ? "✗ Not App."
-        : "";
-    const dateDisp = r.dateDisplay || "";
-    return `│${pad(r.task, COL1)}│${pad(status, COL2)}│${pad(dateDisp, COL3)}│`;
-  });
-
-  return [top, header, sep, ...body, bottom].join("\n");
-}
-``
-
-
+    // AU date helpers
+    function isoToAU(iso) {
+      if (!iso) return "";
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+    }
+    function todayAU() {
+      const d = new Date();
+      return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    }
 
     // ---------- Defaults (overridden by Widget Settings in Jotform) ----------
     let settings = {
@@ -228,15 +187,15 @@ function buildBoxTable_Roboto_PerRow(rows) {
       statusOptions: 'Complete\nNot Applicable',
       headerColor: '#0c2340',
       headerTitle: 'INDUCTION',
-      autoDateOnOptions: '',                 // blank => auto-stamp on ANY status change
+      autoDateOnOptions: '',
       formFontFamily: 'Inter, sans-serif',
       formFontSize: '14px',
       sectionTitleFontColor: '#ffffff',
       thFontColor: '#ffffff'
     };
-    let initialValue = null; // restored on edit
+    let initialValue = null;
 
-    // ---------- Look & feel from settings (TOP-LEVEL, not nested) ----------
+    // ---------- Look & feel ----------
     function applyTheme() {
       const root = document.documentElement;
       root.style.setProperty('--header-color', settings.headerColor);
@@ -271,7 +230,7 @@ function buildBoxTable_Roboto_PerRow(rows) {
       rows.forEach((rowHtml, idx) => {
         const tr = document.createElement('tr');
 
-        // Task cell (HTML allowed)
+        // Task cell
         const tdTask = document.createElement('td');
         tdTask.className = 'task-html';
         tdTask.innerHTML = rowHtml;
@@ -311,7 +270,7 @@ function buildBoxTable_Roboto_PerRow(rows) {
 
         // Auto-date behaviour
         statusWrap.addEventListener('change', (e) => {
-          const chosen = (e.target && e.target.value || '').toLowerCase();
+          const chosen = ((e.target && e.target.value) || '').toLowerCase();
           if (autoOnAny || whitelist.has(chosen)) {
             const today = new Date();
             const yyyy = today.getFullYear();
@@ -402,70 +361,73 @@ function buildBoxTable_Roboto_PerRow(rows) {
 
     function initStandalone() { buildTable(); }
 
+    // ✅ UPDATED initJotform (submit after ready + guard + no duplicate outer braces)
     function initJotform() {
-  JFCustomWidget.subscribe('ready', function () {
-    readSettings();
-    readInitialValue();
-    buildTable();
+      JFCustomWidget.subscribe('ready', function () {
+        window.__statusTableReadyFired = true;
 
-    // ✅ IMPORTANT: subscribe to submit ONLY after ready
-    JFCustomWidget.subscribe('submit', function () {
-      try {
-        const structured = collectValue() || [];
+        readSettings();
+        readInitialValue();
+        buildTable();
 
-        const title = (settings.headerTitle || '').trim();
-        const lines = [];
-        if (title) lines.push(title);
+        // Bind submit once
+        if (!window.__statusTableSubmitBound) {
+          window.__statusTableSubmitBound = true;
 
-        structured.forEach(item => {
-          const task = (item.taskText || stripHtml(item.taskHtml) || '').trim();
-          const status = (item.status || '').trim();
-          const date = (item.date || '').trim(); // keep ISO, or convert if you add isoToAU
+          // ✅ Neat plain text submit (no box table)
+          JFCustomWidget.subscribe('submit', function () {
+            try {
+              const structured = collectValue() || [];
+              const title = (settings.headerTitle || '').trim();
 
-          if (!task) return;
+              const lines = [];
+              if (title) lines.push(title);
 
-          const extras = [];
-          if (status) extras.push(status);
-          if (date) extras.push(date);
+              structured.forEach(item => {
+                const task = (item.taskText || stripHtml(item.taskHtml) || '').trim();
+                const status = (item.status || '').trim();
+                const dateAU = isoToAU(item.date || '');
 
-          lines.push(extras.length ? `- ${task} — ${extras.join(' — ')}` : `- ${task}`);
-        });
+                if (!task) return;
 
-        const output = lines.join('\n').trim();
+                const extras = [];
+                if (status) extras.push(status);
+                if (dateAU) extras.push(dateAU);
 
-        // ✅ never submit blank (blank fields often display as empty in submissions/PDF)
-        JFCustomWidget.sendSubmit({
-          valid: true,
-          value: output || (title || ' ')
-        });
-      } catch (e) {
-        // ✅ fail-safe so the form submit doesn't drop the widget value entirely
-        JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
-      }
-    });
+                lines.push(extras.length ? `- ${task} — ${extras.join(' — ')}` : `- ${task}`);
+              });
 
-    // keep your resize logic
-    window.addEventListener('load', requestResize);
-    new ResizeObserver(requestResize).observe(document.documentElement);
-  });
-}
+              const output = lines.join('\n').trim();
 
+              // Never submit fully blank
+              JFCustomWidget.sendSubmit({
+                valid: true,
+                value: output || (title || ' ')
+              });
+            } catch (e) {
+              JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
+            }
+          });
+        }
 
-      window.addEventListener('load', requestResize);
-      new ResizeObserver(requestResize).observe(document.documentElement);
+        // resize hooks
+        window.addEventListener('load', requestResize);
+        if (window.ResizeObserver) {
+          new ResizeObserver(requestResize).observe(document.documentElement);
+        }
+      });
     }
 
-    // ---------- Environment detection + fallback ----------
+    // ✅ UPDATED boot: no extra stray listeners/braces; keeps fallback
     (function boot() {
       const hasAPI = !!(window.JFCustomWidget && typeof JFCustomWidget.subscribe === 'function');
 
       if (hasAPI) {
-        let readyFired = false;
-        JFCustomWidget.subscribe('ready', function () { readyFired = true; });
+        window.__statusTableReadyFired = false;
         initJotform();
 
         setTimeout(() => {
-          if (!readyFired) {
+          if (!window.__statusTableReadyFired) {
             console.warn('[Status Table] Jotform "ready" not received — rendering standalone.');
             initStandalone();
           }
@@ -478,6 +440,3 @@ function buildBoxTable_Roboto_PerRow(rows) {
 
 </body>
 </html>
-
-
-

@@ -376,38 +376,58 @@
 
           // ✅ Neat plain text submit (no box table)
           JFCustomWidget.subscribe('submit', function () {
-            try {
-              const structured = collectValue() || [];
-              const title = (settings.headerTitle || '').trim();
+  try {
+    const rows = collectValue() || [];
 
-              const lines = [];
-              if (title) lines.push(title);
+    // column widths tuned for Jotform PDFs
+    const COL_TASK   = 48;
+    const COL_STATUS = 12;
+    const COL_DATE   = 10;
 
-              structured.forEach(item => {
-                const task = (item.taskText || stripHtml(item.taskHtml) || '').trim();
-                const status = (item.status || '').trim();
-                const dateAU = isoToAU(item.date || '');
+    const pad = (txt, len) => {
+      txt = String(txt || '');
+      return txt.length > len ? txt.slice(0, len - 1) + '…' : txt.padEnd(len, ' ');
+    };
 
-                if (!task) return;
+    const lines = [];
+    lines.push('TRAINING AREAS AND TASKS');
+    lines.push('');
 
-                const extras = [];
-                if (status) extras.push(status);
-                if (dateAU) extras.push(dateAU);
+    // section header
+    const title = (settings.headerTitle || 'INDUCTION TASKS').toUpperCase();
+    lines.push(title);
+    lines.push('-'.repeat(COL_TASK + COL_STATUS + COL_DATE + 2));
+    lines.push(
+      pad('Task', COL_TASK) + ' ' +
+      pad('Status', COL_STATUS) + ' ' +
+      pad('Date', COL_DATE)
+    );
 
-                lines.push(extras.length ? `- ${task} — ${extras.join(' — ')}` : `- ${task}`);
-              });
+    rows.forEach(r => {
+      const task   = r.taskText || stripHtml(r.taskHtml);
+      const status = r.status || '—';
+      const date   = isoToAU(r.date) || '—';
 
-              const output = lines.join('\n').trim();
+      if (!task) return;
 
-              // Never submit fully blank
-              JFCustomWidget.sendSubmit({
-                valid: true,
-                value: output || (title || ' ')
-              });
-            } catch (e) {
-              JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
-            }
-          });
+      lines.push(
+        pad(task, COL_TASK) + ' ' +
+        pad(status, COL_STATUS) + ' ' +
+        pad(date, COL_DATE)
+      );
+    });
+
+    const output = lines.join('\n').trim();
+
+    JFCustomWidget.sendSubmit({
+      valid: true,
+      value: output
+    });
+
+  } catch (e) {
+    // never let the widget submit empty
+    JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
+  }
         }
 
         // resize hooks
@@ -440,3 +460,4 @@
 
 </body>
 </html>
+

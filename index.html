@@ -389,6 +389,10 @@
             try {
               const rows = collectValue() || [];
               const lines = [];
+              
+    // ✅ Key explaining the format (shown once at top of PDF)
+    lines.push('Task (Status, Date)');
+
 
               rows.forEach(r => {
                 const task = String((r.taskText || stripHtml(r.taskHtml) || '')).trim();
@@ -446,3 +450,4 @@
 
 </body>
 </html>
+

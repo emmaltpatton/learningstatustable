@@ -382,16 +382,12 @@
     // column widths tuned for Jotform PDFs
     const COL_TASK   = 48;
     const COL_STATUS = 12;
-    const COL_DATE   = 10;
+    const COL_DATE   = 5;
 
     const pad = (txt, len) => {
       txt = String(txt || '');
       return txt.length > len ? txt.slice(0, len - 1) + '…' : txt.padEnd(len, ' ');
     };
-
-    const lines = [];
-    lines.push('TRAINING AREAS AND TASKS');
-    lines.push('');
 
     // section header
     const title = (settings.headerTitle || 'INDUCTION TASKS').toUpperCase();
@@ -461,5 +457,6 @@
 
 </body>
 </html>
+
 
 

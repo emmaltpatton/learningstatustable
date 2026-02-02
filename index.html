@@ -403,68 +403,52 @@ function buildBoxTable_Roboto_PerRow(rows) {
     function initStandalone() { buildTable(); }
 
     function initJotform() {
-      JFCustomWidget.subscribe('ready', function () {
-        readSettings();
-        readInitialValue();
-        buildTable();
-      });
+  JFCustomWidget.subscribe('ready', function () {
+    readSettings();
+    readInitialValue();
+    buildTable();
 
-     
+    // ✅ IMPORTANT: subscribe to submit ONLY after ready
+    JFCustomWidget.subscribe('submit', function () {
+      try {
+        const structured = collectValue() || [];
 
+        const title = (settings.headerTitle || '').trim();
+        const lines = [];
+        if (title) lines.push(title);
 
+        structured.forEach(item => {
+          const task = (item.taskText || stripHtml(item.taskHtml) || '').trim();
+          const status = (item.status || '').trim();
+          const date = (item.date || '').trim(); // keep ISO, or convert if you add isoToAU
 
-// >>> REPLACE: safe, single-call submit that never references currentState,
-// >>> and outputs a monospaced <pre> block so columns align perfectly in PDF.
-JFCustomWidget.subscribe('submit', function () {
-  try {
-    const structured = collectValue(); // [{ taskHtml, taskText, status, date }, …]
-    const rows = (structured || []).map(item => ({
-      task: (item.taskText || stripHtml(item.taskHtml) || "").trim(),
-      status: item.status || "",
-      // convert "yyyy-mm-dd" -> "dd/MM/yyyy"; fallback to today if blank
-      dateDisplay: isoToAU(item.date) || todayAU()
-    }));
+          if (!task) return;
 
-    if (!rows.length) {
-      return JFCustomWidget.sendSubmit({
-        valid: false, value: "", error: "No rows to render."
-      });
-    }
+          const extras = [];
+          if (status) extras.push(status);
+          if (date) extras.push(date);
 
-    // Auto-tuned widths based on your actual longest rows
-    const tableText = buildBoxTable_Auto(rows, {
-      // You can tweak these if you ever need tighter/wider lines
-      maxTotal: 98,       // target total chars across 3 columns (content only)
-      minTask:  42, maxTask: 74,
-      minStatus: 12, maxStatus: 22,
-      dateWidth: 10       // dd/MM/yyyy
+          lines.push(extras.length ? `- ${task} — ${extras.join(' — ')}` : `- ${task}`);
+        });
+
+        const output = lines.join('\n').trim();
+
+        // ✅ never submit blank (blank fields often display as empty in submissions/PDF)
+        JFCustomWidget.sendSubmit({
+          valid: true,
+          value: output || (title || ' ')
+        });
+      } catch (e) {
+        // ✅ fail-safe so the form submit doesn't drop the widget value entirely
+        JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
+      }
     });
 
-    if (!tableText || !tableText.trim()) {
-      return JFCustomWidget.sendSubmit({
-        valid: false, value: "", error: "Formatter returned empty output."
-      });
-    }
-
-    // Wrap in <pre> to force monospaced rendering even when the PDF uses Roboto
-    const htmlBlock =
-      `<pre style="font-family: Courier New, Courier, monospace; font-size: 12pt; line-height: 1.35; white-space: pre;">` +
-      tableText +
-      `</pre>`;
-
-    JFCustomWidget.sendSubmit({
-      valid: true,
-      value: htmlBlock
-    });
-  } catch (err) {
-    JFCustomWidget.sendSubmit({
-      valid: false,
-      value: "",
-      error: (err && err.message) ? err.message : "Widget error"
-    });
-    try { console.error(err); } catch(_) {}
-  }
-});
+    // keep your resize logic
+    window.addEventListener('load', requestResize);
+    new ResizeObserver(requestResize).observe(document.documentElement);
+  });
+}
 
 
       window.addEventListener('load', requestResize);
@@ -494,5 +478,6 @@ JFCustomWidget.subscribe('submit', function () {
 
 </body>
 </html>
+
 
 

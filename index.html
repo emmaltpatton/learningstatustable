@@ -375,53 +375,29 @@
           window.__statusTableSubmitBound = true;
 
           // ✅ Neat plain text submit (no box table)
-          JFCustomWidget.subscribe('submit', function () {
+       
+FCustomWidget.subscribe('submit', function () {
   try {
     const rows = collectValue() || [];
-
-    // column widths tuned for Jotform PDFs
-    const COL_TASK   = 48;
-    const COL_STATUS = 12;
-    const COL_DATE   = 5;
-
-    const pad = (txt, len) => {
-      txt = String(txt || '');
-      return txt.length > len ? txt.slice(0, len - 1) + '…' : txt.padEnd(len, ' ');
-    };
-
-    // section header
-    const title = (settings.headerTitle || 'INDUCTION TASKS').toUpperCase();
-    lines.push(title);
-    lines.push('-'.repeat(COL_TASK + COL_STATUS + COL_DATE + 2));
-    lines.push(
-      pad('Task', COL_TASK) + ' ' +
-      pad('Status', COL_STATUS) + ' ' +
-      pad('Date', COL_DATE)
-    );
+    const lines = [];
 
     rows.forEach(r => {
-      const task   = r.taskText || stripHtml(r.taskHtml);
-      const status = r.status || '—';
-      const date   = isoToAU(r.date) || '—';
+      const task   = (r.taskText || stripHtml(r.taskHtml) || '').trim();
+      const status = (r.status || '').trim();
+      const date   = isoToAU(r.date) || '';
 
       if (!task) return;
 
-      lines.push(
-        pad(task, COL_TASK) + ' ' +
-        pad(status, COL_STATUS) + ' ' +
-        pad(date, COL_DATE)
-      );
+      const extras = [];
+      if (status) extras.push(status);
+      if (date) extras.push(date);
+
+      lines.push(extras.length ? `- ${task} (${extras.join(', ')})` : `- ${task}`);
     });
 
     const output = lines.join('\n').trim();
-
-    JFCustomWidget.sendSubmit({
-      valid: true,
-      value: output
-    });
-
+    JFCustomWidget.sendSubmit({ valid: true, value: output || ' ' });
   } catch (e) {
-    // never let the widget submit empty
     JFCustomWidget.sendSubmit({ valid: true, value: ' ' });
   }
 });
@@ -457,6 +433,7 @@
 
 </body>
 </html>
+
 
 
 
